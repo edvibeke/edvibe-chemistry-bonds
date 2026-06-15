@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quantum Bond — EdVibe Atomic Structure Lab</title>
+<link rel="manifest" href="/quantum-bond/manifest.json">
+<meta name="theme-color" content="#070b14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quantum Bond">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #070b14;
+    --panel:        #0e1626;
+    --panel-border: #1d2940;
+    --text:         #e7ecf7;
+    --text-dim:     #7d8cab;
+    --accent:       #5eead4;
+    --ion:          #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  /* ---- Starfield ---- */
+  .stars {
+    position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: #39456b;
+    animation: twinkle linear infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50%       { opacity: 0.7; }
+  }
+
+  /* ---- Layout ---- */
+  .page {
+    position: relative; z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* ---- Header ---- */
+  .header { margin-bottom: 52px; }
+
+  .brand-row {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+  }
+  .brand-mark {
+    width: 48px; height: 48px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-mark svg {
+    width: 24px; height: 24px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .brand-title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-dim);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  .hero-desc {
+    font-size: 15px; color: var(--text-dim); line-height: 1.7; max-width: 540px;
+  }
+  .hero-desc strong { color: var(--accent); font-weight: 600; }
+
+  /* ---- Offline badge ---- */
+  .offline-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(94,234,212,0.08);
+    border: 1px solid rgba(94,234,212,0.25);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-top: 20px;
+  }
+  .offline-badge .dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:0.4; transform:scale(0.7); }
+  }
+
+  /* ---- Phase grid ---- */
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em;
+    color: var(--text-dim); text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .phase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+
+  .phase-card {
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    position: relative; overflow: hidden;
+  }
+  .phase-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .phase-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--card-color, var(--accent));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .phase-card:hover::before { opacity: 1; }
+
+  .phase-card.coming-soon {
+    opacity: 0.45; pointer-events: none;
+  }
+  .phase-card.coming-soon::after {
+    content: 'COMING SOON';
+    position: absolute; top: 12px; right: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 0.1em;
+    color: var(--text-dim);
+    background: var(--panel-border);
+    border-radius: 999px; padding: 3px 7px;
+  }
+
+  .phase-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.08em;
+    color: var(--card-color, var(--accent));
+  }
+  .phase-name { font-size: 15px; font-weight: 600; }
+  .phase-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+
+  .phase-tags {
+    display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px;
+  }
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; letter-spacing: 0.05em;
+    padding: 3px 7px; border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--text-dim);
+  }
+
+  /* ---- Footer ---- */
+  .footer {
+    border-top: 1px solid var(--panel-border);
+    padding-top: 24px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---- Install button ---- */
+  #installBtn {
+    display: none;
+    align-items: center; gap: 8px;
+    background: var(--accent); color: var(--bg);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 600;
+    padding: 10px 20px; border-radius: 10px; border: none;
+    cursor: pointer; transition: opacity 0.2s;
+    margin-bottom: 28px;
+  }
+  #installBtn:hover { opacity: 0.88; }
+  #installBtn.show { display: inline-flex; }
+
+  @media (max-width: 500px) {
+    .brand-title { font-size: 22px; }
+    .page { padding: 32px 16px 60px; }
+    .phase-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div class="stars" id="stars"></div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand-row">
+      <div class="brand-mark">
+        <!-- Inline SVG orbit icon — no CDN dependency on home page -->
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(0 12 12)"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">Quantum Bond</div>
+        <div class="brand-sub">EdVibe &middot; Atomic Structure Lab</div>
+      </div>
+    </div>
+
+    <p class="hero-desc">
+      Replace dry textbook diagrams with a <strong>tangible, visual, interactive 3D reality</strong>
+      of atomic bonding. Drag electrons. Watch molecules form. Slice through crystals.
+      Works on any device, even offline.
+    </p>
+
+    <div class="offline-badge">
+      <span class="dot"></span>
+      PWA &middot; Offline capable &middot; No install required
+    </div>
+  </div>
+
+  <!-- Install prompt (shown only if browser supports it) -->
+  <button id="installBtn">Add to Home Screen</button>
+
+  <!-- Phase cards -->
+  <div class="section-label">Learning Modules</div>
+  <div class="phase-grid">
+
+    <a class="phase-card" href="phase1/index.html" style="--card-color:#ab5cf2">
+      <div class="phase-num">PHASE 1</div>
+      <div class="phase-name">Ion Formation</div>
+      <div class="phase-desc">Single sodium atom — toggle Bohr shells vs electron cloud, click to ionize Na to Na⁺.</div>
+      <div class="phase-tags"><span class="tag">Na</span><span class="tag">Ionisation</span><span class="tag">Electron cloud</span></div>
+    </a>
+
+    <a class="phase-card" href="phase2/index.html" style="--card-color:#1ff01f">
+      <div class="phase-num">PHASE 2</div>
+      <div class="phase-name">Ionic Bond</div>
+      <div class="phase-desc">NaCl — watch the valence electron physically transfer from Na to Cl. Timeline scrubber included.</div>
+      <div class="phase-tags"><span class="tag">NaCl</span><span class="tag">Electron transfer</span><span class="tag">Scrubber</span></div>
+    </a>
+
+    <a class="phase-card" href="phase3/index.html" style="--card-color:#ff3333">
+      <div class="phase-num">PHASE 3</div>
+      <div class="phase-name">Covalent Bond</div>
+      <div class="phase-desc">H₂O at 104.5° — two sequential O–H bonds form with shared orbital overlap and dipole arrow.</div>
+      <div class="phase-tags"><span class="tag">H₂O</span><span class="tag">VSEPR</span><span class="tag">Dipole</span></div>
+    </a>
+
+    <a class="phase-card" href="phase4/index.html" style="--card-color:#fbbf24">
+      <div class="phase-num">PHASE 4</div>
+      <div class="phase-name">Crystal Lattice</div>
+      <div class="phase-desc">NaCl 3D grid assembles ion by ion from the centre. Cross-section slider reveals the interior.</div>
+      <div class="phase-tags"><span class="tag">InstancedMesh</span><span class="tag">FCC</span><span class="tag">Cross-section</span></div>
+    </a>
+
+    <a class="phase-card" href="phase5/index.html" style="--card-color:#e8840a">
+      <div class="phase-num">PHASE 5</div>
+      <div class="phase-name">Metallic Bond</div>
+      <div class="phase-desc">Copper FCC lattice with a sea of delocalised electrons. Temperature and current flow controls.</div>
+      <div class="phase-tags"><span class="tag">Cu</span><span class="tag">Sea of electrons</span><span class="tag">Current</span></div>
+    </a>
+
+    <a class="phase-card" href="phase6/index.html" style="--card-color:#5eead4">
+      <div class="phase-num">PHASE 6</div>
+      <div class="phase-name">Sandbox</div>
+      <div class="phase-desc">Drag any element from the periodic table. Engine auto-classifies bonds as ionic, polar, or covalent.</div>
+      <div class="phase-tags"><span class="tag">Free explore</span><span class="tag">20 elements</span><span class="tag">Drag</span></div>
+    </a>
+
+    <div class="phase-card coming-soon" style="--card-color:#7d8cab">
+      <div class="phase-num">PHASE 7</div>
+      <div class="phase-name">PWA Offline</div>
+      <div class="phase-desc">Service worker caches all phases and CDN assets. Works with zero internet after first load.</div>
+      <div class="phase-tags"><span class="tag">Service Worker</span><span class="tag">Offline</span></div>
+    </div>
+
+    <div class="phase-card coming-soon" style="--card-color:#7d8cab">
+      <div class="phase-num">PHASE 8</div>
+      <div class="phase-name">Guided Quiz</div>
+      <div class="phase-desc">Build molecules step by step. Wrong geometry triggers a visual explosion. Score tracked per session.</div>
+      <div class="phase-tags"><span class="tag">Quiz</span><span class="tag">Gamified</span><span class="tag">Score</span></div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Quantum Bond &middot; EdVibe &copy; 2025</span>
+    <span id="swStatus">Checking offline status&hellip;</span>
+  </div>
+
+</div>
+
+<script>
+  /* ---- Starfield ---- */
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = 1 + Math.random() * 2;
+    s.style.cssText = `
+      width:${size}px; height:${size}px;
+      top:${Math.random()*100}%;
+      left:${Math.random()*100}%;
+      animation-duration:${3+Math.random()*5}s;
+      animation-delay:${Math.random()*5}s;
+    `;
+    starsEl.appendChild(s);
+  }
+
+  /* ---- Service worker registration ---- */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('/quantum-bond/sw.js', { scope: '/quantum-bond/' })
+      .then(reg => {
+        const el = document.getElementById('swStatus');
+        if (reg.active) {
+          el.textContent = 'Offline ready — all phases cached';
+          el.style.color = '#5eead4';
+        } else {
+          el.textContent = 'Caching phases for offline use\u2026';
+          reg.installing?.addEventListener('statechange', e => {
+            if (e.target.state === 'activated') {
+              el.textContent = 'Offline ready — all phases cached';
+              el.style.color = '#5eead4';
+            }
+          });
+        }
+      })
+      .catch(() => {
+        document.getElementById('swStatus').textContent = 'Offline caching unavailable (needs HTTPS)';
+      });
+  }
+
+  /* ---- PWA install prompt ---- */
+  let deferredPrompt = null;
+  const installBtn   = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.classList.add('show');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (outcome === 'accepted') installBtn.classList.remove('show');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.classList.remove('show');
+  });
+</script>
+</body>
+</html>

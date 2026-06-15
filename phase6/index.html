@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quantum Bond — Phase 6: Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/theme.css">
+<style>
+  .dock { left: 50%; right: auto; transform: translateX(-50%); }
+  .drawer-wrap {
+    position: fixed; top: 50%; left: 0;
+    transform: translateY(-50%) translateX(0);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    z-index: 15; display: flex; align-items: center;
+  }
+  .drawer-wrap.closed { transform: translateY(-50%) translateX(calc(-100% + 22px)); }
+  .readout {
+    width: 220px; background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 0 14px 14px 0; padding: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 80vh; overflow-y: auto; scrollbar-width: none;
+  }
+  .readout::-webkit-scrollbar { display: none; }
+  .drawer-tab {
+    width: 22px; height: 56px; background: var(--panel);
+    border: 1px solid var(--panel-border); border-left: none;
+    border-radius: 0 8px 8px 0; display: flex; align-items: center;
+    justify-content: center; cursor: pointer; flex-shrink: 0;
+    transition: background 0.2s ease; -webkit-tap-highlight-color: transparent;
+  }
+  .drawer-tab:hover { background: var(--panel-border); }
+  .drawer-tab svg { width: 12px; height: 12px; color: var(--text-dim); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+  .drawer-wrap.closed .drawer-tab svg { transform: rotate(180deg); }
+  .ptable-wrap {
+    position: fixed; bottom: 0; left: 50%;
+    transform: translateX(-50%) translateY(0);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    z-index: 15; display: flex; flex-direction: column; align-items: center;
+  }
+  .ptable-wrap.collapsed { transform: translateX(-50%) translateY(calc(100% - 32px)); }
+  .ptable-handle {
+    width: 80px; height: 32px; background: var(--panel);
+    border: 1px solid var(--panel-border); border-bottom: none;
+    border-radius: 10px 10px 0 0; display: flex; align-items: center;
+    justify-content: center; cursor: pointer; gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ptable-handle-bar { width: 28px; height: 3px; border-radius: 999px; background: var(--text-dim); transition: background 0.2s; }
+  .ptable-handle:hover .ptable-handle-bar { background: var(--accent); }
+  .ptable-panel {
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 14px 14px 0 0; padding: 12px 14px 16px;
+    width: min(560px, 96vw);
+  }
+  .ptable-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em; color:var(--text-dim); text-transform:uppercase; text-align:center; margin-bottom:10px; }
+  .ptable-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:4px; }
+  .el-btn {
+    aspect-ratio:1; border-radius:6px; border:1px solid transparent; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    transition:transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    -webkit-tap-highlight-color:transparent; user-select:none; position:relative; overflow:hidden;
+  }
+  .el-btn:active { transform:scale(0.88); }
+  .el-btn:hover { border-color:var(--accent); box-shadow:0 0 8px rgba(94,234,212,0.35); transform:scale(1.08); z-index:2; }
+  .el-btn.disabled { opacity:0.3; cursor:not-allowed; pointer-events:none; }
+  .el-btn.noble { opacity:0.5; }
+  .el-symbol { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:clamp(9px,2.2vw,13px); color:#fff; line-height:1; }
+  .el-z { font-family:'IBM Plex Mono',monospace; font-size:clamp(6px,1.4vw,8px); color:rgba(255,255,255,0.55); line-height:1; }
+  .el-count { position:absolute; top:2px; right:3px; font-family:'IBM Plex Mono',monospace; font-size:8px; font-weight:700; color:var(--accent); line-height:1; }
+  .bond-toast {
+    position:fixed; top:72px; left:50%; transform:translateX(-50%);
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:12px;
+    padding:8px 18px; z-index:12; font-family:'IBM Plex Mono',monospace; font-size:12px;
+    color:var(--text); text-align:center; pointer-events:none; opacity:0;
+    transition:opacity 0.3s ease; white-space:nowrap;
+  }
+  .bond-toast.visible { opacity:1; }
+  .bond-toast .bond-type { font-size:14px; font-weight:700; margin-bottom:2px; }
+  .bond-toast .bond-desc { color:var(--text-dim); font-size:10px; }
+  .formula-display {
+    position:fixed; top:72px; right:20px; background:var(--panel);
+    border:1px solid var(--panel-border); border-radius:12px; padding:10px 16px;
+    z-index:12; font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700;
+    color:var(--text); min-width:60px; text-align:center; transition:opacity 0.3s ease; opacity:0;
+  }
+  .formula-display.visible { opacity:1; }
+  .formula-display .formula-label { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase; display:block; margin-bottom:2px; }
+  .section-divider { border:none; border-top:1px solid var(--panel-border); margin:6px 0; }
+  .section-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px; }
+  .atom-list { display:flex; flex-direction:column; gap:4px; }
+  .atom-row { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:7px; background:rgba(255,255,255,0.04); cursor:pointer; transition:background 0.15s; }
+  .atom-row:hover { background:rgba(255,255,255,0.09); }
+  .atom-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .atom-sym { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700; flex:1; }
+  .atom-name { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim); }
+  .atom-remove { font-size:14px; color:var(--text-dim); line-height:1; opacity:0.5; transition:opacity 0.15s; }
+  .atom-row:hover .atom-remove { opacity:1; color:#ef4444; }
+  .bond-list { display:flex; flex-direction:column; gap:4px; }
+  .bond-row { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:7px; background:rgba(255,255,255,0.04); }
+  .bond-pip { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .bond-label-text { font-family:'IBM Plex Mono',monospace; font-size:10px; flex:1; }
+  .bond-energy { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim); }
+  .empty-hint { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); text-align:center; padding:10px 0; line-height:1.6; }
+  .dock-btn.active { color:var(--accent); border-color:var(--accent); background:rgba(94,234,212,0.08); }
+  @media (max-width:640px) { .formula-display { display:none; } .ptable-panel { padding:8px 8px 12px; } }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><i data-lucide="orbit" style="width:18px;height:18px;"></i></div>
+    <div class="brand-text">
+      <div class="title">Quantum Bond</div>
+      <div class="subtitle">EDVIBE &middot; ATOMIC STRUCTURE LAB</div>
+    </div>
+  </div>
+  <div class="phase-tag">PHASE 6 / 8 &middot; SANDBOX</div>
+</div>
+
+<div class="bond-toast" id="bondToast">
+  <div class="bond-type" id="bondType">Ionic Bond</div>
+  <div class="bond-desc" id="bondDesc"></div>
+</div>
+
+<div class="formula-display" id="formulaDisplay">
+  <span class="formula-label">Formula</span>
+  <span id="formulaText">—</span>
+</div>
+
+<!-- Slide drawer -->
+<div class="drawer-wrap" id="drawerWrap">
+  <div class="readout">
+    <div class="symbol-row">
+      <span class="symbol" style="--element-color:#5eead4; font-size:18px;">Sandbox</span>
+    </div>
+    <div class="config-name">Free exploration mode</div>
+    <div class="readout-row">
+      <span class="readout-label">ATOMS IN SCENE</span>
+      <span class="readout-value" id="atomCountVal">0 / 4</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">BONDS FORMED</span>
+      <span class="readout-value" id="bondCountVal">0</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">FORMULA</span>
+      <span class="readout-value" id="formulaVal">—</span>
+    </div>
+    <hr class="section-divider">
+    <div class="section-title">Atoms</div>
+    <div class="atom-list" id="atomList">
+      <div class="empty-hint">Tap an element below<br>to add it to the scene</div>
+    </div>
+    <hr class="section-divider">
+    <div class="section-title">Bonds</div>
+    <div class="bond-list" id="bondList">
+      <div class="empty-hint">Bonds appear<br>when 2+ atoms are added</div>
+    </div>
+    <hr class="section-divider">
+    <div class="section-title">Bond Guide</div>
+    <div class="readout-row">
+      <span class="readout-label" style="color:#5eead4;">&#9632;</span>
+      <span class="readout-value" style="font-size:10px;">Covalent (&Delta;&chi; &lt; 0.4)</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label" style="color:#f59e0b;">&#9632;</span>
+      <span class="readout-value" style="font-size:10px;">Polar cov. (0.4&ndash;1.7)</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label" style="color:#ff6b35;">&#9632;</span>
+      <span class="readout-value" style="font-size:10px;">Ionic (&Delta;&chi; &gt; 1.7)</span>
+    </div>
+  </div>
+  <div class="drawer-tab" id="drawerTab">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="8,2 4,6 8,10"/>
+    </svg>
+  </div>
+</div>
+
+<!-- Dock -->
+<div class="dock">
+  <button class="dock-btn" id="undoBtn"><i data-lucide="corner-left-up"></i><span class="label">Undo</span></button>
+  <button class="dock-btn" id="clearBtn"><i data-lucide="trash-2"></i><span class="label">Clear</span></button>
+  <button class="dock-btn" id="rotateBtn"><i data-lucide="rotate-cw"></i><span class="label">Rotate</span></button>
+</div>
+
+<!-- Periodic table -->
+<div class="ptable-wrap" id="ptableWrap">
+  <div class="ptable-handle" id="ptableHandle">
+    <div class="ptable-handle-bar"></div>
+    <div class="ptable-handle-bar"></div>
+  </div>
+  <div class="ptable-panel">
+    <div class="ptable-title">Tap an element to add it &middot; max 4 atoms</div>
+    <div class="ptable-grid" id="ptableGrid"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { initScene, startLoop } from '../core/scene.js';
+import { buildSandbox, ELEMENTS } from '../core/sandbox.js';
+import { initIcons } from '../core/ui.js';
+
+const container = document.getElementById('scene');
+const { scene, camera, renderer, controls } = initScene(container, {
+  cameraPosition: [0, 0, 10],
+  minDistance: 4,
+  maxDistance: 30,
+  fogDensity: 0.007,
+});
+
+/* ---- Drawer ---- */
+const drawerWrap = document.getElementById('drawerWrap');
+drawerWrap.classList.add('closed');
+document.getElementById('drawerTab').addEventListener('click', () => {
+  drawerWrap.classList.toggle('closed');
+});
+
+/* ---- Periodic table toggle ---- */
+const ptableWrap = document.getElementById('ptableWrap');
+document.getElementById('ptableHandle').addEventListener('click', () => {
+  ptableWrap.classList.toggle('collapsed');
+});
+
+/* ---- DOM refs ---- */
+const atomList       = document.getElementById('atomList');
+const bondList       = document.getElementById('bondList');
+const atomCountVal   = document.getElementById('atomCountVal');
+const bondCountVal   = document.getElementById('bondCountVal');
+const formulaVal     = document.getElementById('formulaVal');
+const formulaDisplay = document.getElementById('formulaDisplay');
+const formulaText    = document.getElementById('formulaText');
+const bondToast      = document.getElementById('bondToast');
+const bondTypeEl     = document.getElementById('bondType');
+const bondDescEl     = document.getElementById('bondDesc');
+
+/* ---- Sandbox ---- */
+const sandbox = buildSandbox(scene, camera, renderer, { onUpdate: handleUpdate });
+
+/* ---- Auto-rotation ---- */
+let autoRotate = true;
+let userInteracting = false;
+controls.addEventListener('start', () => userInteracting = true);
+controls.addEventListener('end',   () => setTimeout(() => userInteracting = false, 2000));
+
+const rotateBtn = document.getElementById('rotateBtn');
+rotateBtn.classList.add('active');
+rotateBtn.addEventListener('click', () => {
+  autoRotate = !autoRotate;
+  rotateBtn.classList.toggle('active', autoRotate);
+});
+
+startLoop({ scene, camera, controls, renderer }, [
+  { update: (dt) => {
+    if (autoRotate && !userInteracting && sandbox.atoms.length > 0) {
+      sandbox.group.rotation.y += dt * 0.012;
+    }
+    sandbox.update(dt);
+  }}
+]);
+
+/* ---- Toast ---- */
+let toastTimeout = null;
+function showToast(info) {
+  bondTypeEl.textContent = info.label;
+  bondTypeEl.style.color = `#${info.color.toString(16).padStart(6,'0')}`;
+  bondDescEl.textContent = info.desc;
+  bondToast.classList.add('visible');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => bondToast.classList.remove('visible'), 3000);
+}
+
+/* ---- Update readout ---- */
+function handleUpdate({ atoms, bonds, formula }) {
+  atomCountVal.textContent = `${atoms.length} / 4`;
+  bondCountVal.textContent = bonds.length;
+  formulaVal.textContent   = formula || '—';
+  formulaText.textContent  = formula || '—';
+  formulaDisplay.classList.toggle('visible', formula.length > 0);
+
+  /* Atom list */
+  if (atoms.length === 0) {
+    atomList.innerHTML = '<div class="empty-hint">Tap an element below<br>to add it to the scene</div>';
+  } else {
+    atomList.innerHTML = '';
+    atoms.forEach((a, i) => {
+      const el  = a.element;
+      const hex = `#${el.color.toString(16).padStart(6,'0')}`;
+      const row = document.createElement('div');
+      row.className = 'atom-row';
+      row.innerHTML = `
+        <div class="atom-dot" style="background:${hex}"></div>
+        <span class="atom-sym" style="color:${hex}">${el.symbol}</span>
+        <span class="atom-name">${el.name}</span>
+        <span class="atom-remove" title="Remove">&times;</span>
+      `;
+      row.querySelector('.atom-remove').addEventListener('click', (e) => {
+        e.stopPropagation();
+        sandbox.removeAtom(i);
+        refreshButtons();
+      });
+      atomList.appendChild(row);
+    });
+  }
+
+  /* Bond list */
+  if (bonds.length === 0) {
+    bondList.innerHTML = '<div class="empty-hint">Bonds appear<br>when 2+ atoms are added</div>';
+  } else {
+    bondList.innerHTML = '';
+    bonds.forEach(info => {
+      const hex = `#${info.color.toString(16).padStart(6,'0')}`;
+      const orderStr = info.order > 0 ? ` &middot; ${['','single','double','triple'][info.order]||''}` : '';
+      const row = document.createElement('div');
+      row.className = 'bond-row';
+      row.innerHTML = `
+        <div class="bond-pip" style="background:${hex}"></div>
+        <span class="bond-label-text" style="color:${hex}">${info.label}${orderStr}</span>
+        <span class="bond-energy">${info.energy} kJ/mol</span>
+      `;
+      bondList.appendChild(row);
+    });
+    showToast(bonds[bonds.length - 1]);
+  }
+
+  refreshButtons();
+}
+
+/* ---- Periodic table ---- */
+const NOBLE_GASES = new Set(['He','Ne','Ar']);
+const ELEMENT_ORDER = [
+  'H',  null, null, null, null, null, null, null, null, 'He',
+  'Li', 'Be', null, null, null, 'B',  'C',  'N',  'O',  'F',
+  'Ne', 'Na', 'Mg', null, null, null, 'Al', 'Si', 'P',  'S',
+  'Cl', 'Ar', 'K',  'Ca',
+];
+
+const ptableGrid = document.getElementById('ptableGrid');
+const elButtons  = {};
+
+ELEMENT_ORDER.forEach(sym => {
+  const cell = document.createElement('div');
+  if (!sym) {
+    cell.style.visibility = 'hidden';
+    cell.style.aspectRatio = '1';
+    ptableGrid.appendChild(cell);
+    return;
+  }
+  const el  = ELEMENTS[sym];
+  const hex = `#${el.color.toString(16).padStart(6,'0')}`;
+  cell.className = 'el-btn' + (NOBLE_GASES.has(sym) ? ' noble' : '');
+  cell.style.background   = hex + '22';
+  cell.style.borderColor  = hex + '55';
+  cell.title = `${el.name} \u00b7 \u03c7=${el.χ} \u00b7 ${el.v} valence e\u207B`;
+  cell.innerHTML = `
+    <span class="el-z">${el.z}</span>
+    <span class="el-symbol" style="color:${hex}">${sym}</span>
+    <span class="el-count" id="count-${sym}"></span>
+  `;
+  cell.addEventListener('click', () => {
+    if (sandbox.atoms.length >= 4 || NOBLE_GASES.has(sym)) return;
+    sandbox.addAtom(el, window.innerWidth / 2, window.innerHeight / 2);
+    refreshButtons();
+  });
+  ptableGrid.appendChild(cell);
+  elButtons[sym] = cell;
+});
+
+function refreshButtons() {
+  const full   = sandbox.atoms.length >= 4;
+  const counts = {};
+  sandbox.atoms.forEach(a => { counts[a.element.symbol] = (counts[a.element.symbol]||0)+1; });
+  Object.keys(elButtons).forEach(sym => {
+    elButtons[sym].classList.toggle('disabled', full && !NOBLE_GASES.has(sym));
+    const cEl = document.getElementById(`count-${sym}`);
+    if (cEl) cEl.textContent = counts[sym] ? `\u00d7${counts[sym]}` : '';
+  });
+}
+
+/* ---- Dock buttons ---- */
+document.getElementById('undoBtn').addEventListener('click', () => { sandbox.undo(); refreshButtons(); });
+document.getElementById('clearBtn').addEventListener('click', () => {
+  sandbox.clear(); refreshButtons();
+  bondToast.classList.remove('visible');
+  formulaDisplay.classList.remove('visible');
+});
+
+/* ---- Drag atoms in scene ---- */
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  const picked = sandbox.pickAtom(e.clientX, e.clientY);
+  if (!picked) return;
+  e.stopPropagation();
+  controls.enabled = false;
+  sandbox.startDrag(picked, e);
+});
+renderer.domElement.addEventListener('pointerup', () => { controls.enabled = true; });
+
+initIcons();
+</script>
+</body>
+</html>

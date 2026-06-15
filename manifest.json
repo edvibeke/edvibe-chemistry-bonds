@@ -1,0 +1,53 @@
+{
+  "name": "Quantum Bond — Atomic Structure Lab",
+  "short_name": "Quantum Bond",
+  "description": "Interactive 3D chemistry learning platform. Explore atomic bonding, crystal lattices, and molecular structures — works offline.",
+  "start_url": "/quantum-bond/phase1/index.html",
+  "scope": "/quantum-bond/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "theme_color": "#070b14",
+  "background_color": "#070b14",
+  "lang": "en",
+  "categories": ["education", "science"],
+  "icons": [
+    {
+      "src": "/quantum-bond/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/quantum-bond/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Phase 1 — Ion Formation",
+      "short_name": "Phase 1",
+      "url": "/quantum-bond/phase1/index.html",
+      "description": "Single sodium atom — Bohr shells and ionization"
+    },
+    {
+      "name": "Phase 2 — Ionic Bond",
+      "short_name": "Phase 2",
+      "url": "/quantum-bond/phase2/index.html",
+      "description": "NaCl electron transfer with timeline scrubber"
+    },
+    {
+      "name": "Phase 3 — Covalent Bond",
+      "short_name": "Phase 3",
+      "url": "/quantum-bond/phase3/index.html",
+      "description": "H2O molecular geometry and orbital overlap"
+    },
+    {
+      "name": "Phase 6 — Sandbox",
+      "short_name": "Sandbox",
+      "url": "/quantum-bond/phase6/index.html",
+      "description": "Free exploration with any element"
+    }
+  ]
+}

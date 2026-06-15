@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quantum Bond — Phase 2: NaCl Ionic Bond</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/theme.css">
+<style>
+  .readout-right {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 210px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 16px 16px 14px;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+  }
+  .dock {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+  .scrubber-wrap {
+    position: fixed;
+    bottom: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 280px;
+  }
+  .scrubber-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .scrubber {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    outline: none;
+    cursor: pointer;
+  }
+  .scrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 6px rgba(94,234,212,0.6);
+  }
+  .scrubber::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  .atom-label {
+    position: fixed;
+    top: 80px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .atom-label.left  { left: 20px; color: #ab5cf2; }
+  .atom-label.right { right: 20px; color: #1ff01f; }
+  .bond-state {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    z-index: 10;
+    pointer-events: none;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    white-space: nowrap;
+  }
+  .bond-state.bonded { color: var(--ion); border-color: var(--ion); }
+  @media (max-width: 640px) {
+    .readout       { width: 150px; padding: 10px; }
+    .readout-right { width: 150px; padding: 10px; }
+    .scrubber-wrap { width: 200px; bottom: 96px; }
+    .atom-label    { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><i data-lucide="orbit" style="width:18px;height:18px;"></i></div>
+    <div class="brand-text">
+      <div class="title">Quantum Bond</div>
+      <div class="subtitle">EDVIBE &middot; ATOMIC STRUCTURE LAB</div>
+    </div>
+  </div>
+  <div class="phase-tag">PHASE 2 / 8 &middot; IONIC BONDING</div>
+</div>
+
+<div class="atom-label left">Na &middot; Sodium</div>
+<div class="atom-label right">Cl &middot; Chlorine</div>
+<div class="bond-state" id="bondState">No bond formed yet</div>
+<div class="hint" id="hint">Drag to rotate &nbsp;&middot;&nbsp; <span class="arrow">Press Transfer to begin ionic bonding</span></div>
+
+<!-- Na readout (left) -->
+<div class="readout">
+  <div class="symbol-row">
+    <span class="symbol" id="naSymbol" style="--element-color:#ab5cf2">Na</span>
+    <span class="charge-sup" id="naChargeSup">+1</span>
+  </div>
+  <div class="config-name" id="naConfigName">Sodium &middot; neutral atom</div>
+  <div class="readout-row"><span class="readout-label">PROTONS</span><span class="readout-value" id="naProtons">11</span></div>
+  <div class="readout-row"><span class="readout-label">ELECTRONS</span><span class="readout-value electron" id="naElectrons">11</span></div>
+  <div class="readout-row"><span class="readout-label">CHARGE</span><span class="readout-value" id="naCharge">0</span></div>
+  <div class="readout-row"><span class="readout-label">RADIUS</span><span class="readout-value" id="naRadius">186 pm</span></div>
+  <div class="shells" id="naShells"></div>
+</div>
+
+<!-- Cl readout (right) -->
+<div class="readout-right">
+  <div class="symbol-row">
+    <span class="symbol" id="clSymbol" style="--element-color:#1ff01f">Cl</span>
+    <span class="charge-sup" id="clChargeSup">&#x2212;1</span>
+  </div>
+  <div class="config-name" id="clConfigName">Chlorine &middot; neutral atom</div>
+  <div class="readout-row"><span class="readout-label">PROTONS</span><span class="readout-value" id="clProtons">17</span></div>
+  <div class="readout-row"><span class="readout-label">ELECTRONS</span><span class="readout-value electron" id="clElectrons">17</span></div>
+  <div class="readout-row"><span class="readout-label">CHARGE</span><span class="readout-value" id="clCharge">0</span></div>
+  <div class="readout-row"><span class="readout-label">RADIUS</span><span class="readout-value" id="clRadius">99 pm</span></div>
+  <div class="shells" id="clShells"></div>
+</div>
+
+<!-- Scrubber -->
+<div class="scrubber-wrap">
+  <div class="scrubber-label">Transfer timeline</div>
+  <input type="range" class="scrubber" id="scrubber" min="0" max="100" value="0" step="1">
+</div>
+
+<!-- Dock -->
+<div class="dock">
+  <button class="dock-btn active" id="transferBtn">
+    <i data-lucide="zap"></i>
+    <span class="label">Transfer electron</span>
+  </button>
+  <button class="dock-btn" id="modeBtn">
+    <i data-lucide="orbit"></i>
+    <span class="label">Bohr shells</span>
+  </button>
+  <button class="dock-btn" id="resetBtn">
+    <i data-lucide="rotate-ccw"></i>
+    <span class="label">Reset</span>
+  </button>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { initScene, startLoop } from '../core/scene.js';
+import { ELEMENTS } from '../core/elements.js';
+import { buildAtom } from '../core/atom.js';
+import { buildBond } from '../core/bond.js';
+import { initIcons, buildShellPills, updateReadout, applyModeButton, setHintVisible } from '../core/ui.js';
+
+const container = document.getElementById('scene');
+const { scene, camera, renderer, controls } = initScene(container, {
+  cameraPosition: [0, 3, 18],
+  minDistance: 6,
+  maxDistance: 32
+});
+
+const sodium   = buildAtom(ELEMENTS.Na, { position: new THREE.Vector3(-4.5, 0, 0) });
+const chlorine = buildAtom(ELEMENTS.Cl, { position: new THREE.Vector3( 4.5, 0, 0) });
+scene.add(sodium.group);
+scene.add(chlorine.group);
+
+const bond = buildBond(sodium, chlorine, scene);
+
+const naRefs = {
+  symbol: document.getElementById('naSymbol'),
+  chargeSup: document.getElementById('naChargeSup'),
+  configName: document.getElementById('naConfigName'),
+  electronsValue: document.getElementById('naElectrons'),
+  chargeValue: document.getElementById('naCharge'),
+  radiusValue: document.getElementById('naRadius'),
+  shellsWrap: document.getElementById('naShells')
+};
+const clRefs = {
+  symbol: document.getElementById('clSymbol'),
+  chargeSup: document.getElementById('clChargeSup'),
+  configName: document.getElementById('clConfigName'),
+  electronsValue: document.getElementById('clElectrons'),
+  chargeValue: document.getElementById('clCharge'),
+  radiusValue: document.getElementById('clRadius'),
+  shellsWrap: document.getElementById('clShells')
+};
+
+buildShellPills(ELEMENTS.Na, naRefs.shellsWrap);
+buildShellPills(ELEMENTS.Cl, clRefs.shellsWrap);
+updateReadout(sodium, naRefs);
+updateReadout(chlorine, clRefs);
+
+const hint        = document.getElementById('hint');
+const bondState   = document.getElementById('bondState');
+const scrubber    = document.getElementById('scrubber');
+const transferBtn = document.getElementById('transferBtn');
+const modeBtn     = document.getElementById('modeBtn');
+const resetBtn    = document.getElementById('resetBtn');
+
+function refreshReadouts() {
+  updateReadout(sodium, naRefs);
+  updateReadout(chlorine, clRefs);
+}
+
+function setBondState(bonded) {
+  if (bonded) {
+    bondState.textContent = 'Ionic bond formed \u2014 Na\u207A + Cl\u207B';
+    bondState.classList.add('bonded');
+  } else {
+    bondState.textContent = 'No bond formed yet';
+    bondState.classList.remove('bonded');
+  }
+}
+
+transferBtn.addEventListener('click', () => {
+  if (bond.isAnimating || bond.isComplete) return;
+  setHintVisible(hint, false);
+  transferBtn.disabled = true;
+  transferBtn.classList.remove('active');
+  bond.transfer(() => {
+    refreshReadouts();
+    setBondState(true);
+    scrubber.value = 100;
+  });
+});
+
+scrubber.addEventListener('input', () => {
+  if (bond.isAnimating) return;
+  const t = Number(scrubber.value) / 100;
+  bond.scrub(t);
+  refreshReadouts();
+  setBondState(t >= 1);
+  setHintVisible(hint, false);
+  if (t < 1) {
+    transferBtn.disabled = false;
+    transferBtn.classList.add('active');
+  }
+});
+
+let cloudMode = false;
+modeBtn.addEventListener('click', () => {
+  cloudMode = !cloudMode;
+  sodium.setMode(cloudMode);
+  chlorine.setMode(cloudMode);
+  applyModeButton(cloudMode, modeBtn);
+});
+
+resetBtn.addEventListener('click', () => {
+  bond.reset();
+  transferBtn.disabled = false;
+  transferBtn.classList.add('active');
+  scrubber.value = 0;
+  setBondState(false);
+  refreshReadouts();
+  setHintVisible(hint, true);
+});
+
+startLoop({ scene, camera, controls, renderer }, [
+  sodium,
+  chlorine,
+  { update: (dt) => {
+    sodium.group.rotation.y   += dt * 0.04;
+    chlorine.group.rotation.y -= dt * 0.04;
+  }}
+]);
+
+initIcons();
+</script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quantum Bond — Phase 3: H2O Covalent Bond</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/theme.css">
+<style>
+  /* ---- molecule readout (bottom-left, wider for molecule data) ---- */
+  .readout { width: 250px; }
+
+  /* ---- bond progress steps (bottom-centre) ---- */
+  .steps-wrap {
+    position: fixed;
+    bottom: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .step-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--panel-border);
+    border: 2px solid var(--panel-border);
+    transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .step-dot.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(94,234,212,0.7);
+  }
+  .step-dot.done {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .step-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    white-space: nowrap;
+    transition: color 0.3s ease;
+  }
+  .step-label.active { color: var(--accent); }
+
+  .step-line {
+    width: 48px;
+    height: 2px;
+    background: var(--panel-border);
+    margin-bottom: 20px;
+    transition: background 0.4s ease;
+  }
+  .step-line.done { background: var(--accent); }
+
+  /* ---- dock centred ---- */
+  .dock {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  /* ---- atom labels ---- */
+  .atom-label {
+    position: fixed;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 4px 12px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .lbl-o  { top: 80px; left: 50%; transform: translateX(-50%); color: #ff3333; }
+  .lbl-h1 { top: 80px; left: 20px;  color: #cccccc; }
+  .lbl-h2 { top: 80px; right: 20px; color: #cccccc; }
+
+  /* ---- bond state badge ---- */
+  .bond-state {
+    position: fixed;
+    top: 112px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    z-index: 10;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: color 0.3s ease, border-color 0.3s ease;
+  }
+  .bond-state.formed { color: var(--accent); border-color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .readout { width: 180px; padding: 10px; }
+    .step-line { width: 28px; }
+    .lbl-h1, .lbl-h2 { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><i data-lucide="orbit" style="width:18px;height:18px;"></i></div>
+    <div class="brand-text">
+      <div class="title">Quantum Bond</div>
+      <div class="subtitle">EDVIBE &middot; ATOMIC STRUCTURE LAB</div>
+    </div>
+  </div>
+  <div class="phase-tag">PHASE 3 / 8 &middot; COVALENT BONDING</div>
+</div>
+
+<!-- Atom labels -->
+<div class="atom-label lbl-o">O &middot; Oxygen (centre)</div>
+<div class="atom-label lbl-h1">H&sub1; &middot; Hydrogen</div>
+<div class="atom-label lbl-h2">H&sub2; &middot; Hydrogen</div>
+<div class="bond-state" id="bondState">No bonds formed yet</div>
+
+<!-- Hint -->
+<div class="hint" id="hint">
+  Drag to rotate &nbsp;&middot;&nbsp;
+  <span class="arrow">Press Form Bond to start covalent bonding</span>
+</div>
+
+<!-- Molecule readout (bottom-left) -->
+<div class="readout">
+  <div class="symbol-row">
+    <span class="symbol" style="--element-color:#ff3333; font-size:22px;" id="formula">H&#x2082;O</span>
+  </div>
+  <div class="config-name" id="moleculeName">Water &middot; covalent molecule</div>
+
+  <div class="readout-row">
+    <span class="readout-label">BOND TYPE</span>
+    <span class="readout-value" id="bondType">Polar covalent</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">BOND ANGLE</span>
+    <span class="readout-value electron" id="bondAngle">104.5&deg;</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">O-H LENGTH</span>
+    <span class="readout-value" id="bondLength">96 pm</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">SHAPE</span>
+    <span class="readout-value" id="shape">Bent (VSEPR)</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">POLARITY</span>
+    <span class="readout-value" id="polarity" style="color: var(--ion)">Polar molecule</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">BONDS FORMED</span>
+    <span class="readout-value" id="bondsFormed">0 / 2</span>
+  </div>
+</div>
+
+<!-- Bond progress steps -->
+<div class="steps-wrap">
+  <div class="step">
+    <div class="step-dot" id="dot0"></div>
+    <div class="step-label" id="lbl0">O + H&#x2081;</div>
+  </div>
+  <div class="step-line" id="line0"></div>
+  <div class="step">
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-label" id="lbl1">O + H&#x2082;</div>
+  </div>
+  <div class="step-line" id="line1"></div>
+  <div class="step">
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-label" id="lbl2">H&#x2082;O complete</div>
+  </div>
+</div>
+
+<!-- Dock -->
+<div class="dock">
+  <button class="dock-btn active" id="bondBtn">
+    <i data-lucide="link"></i>
+    <span class="label">Form bond</span>
+  </button>
+  <button class="dock-btn" id="modeBtn">
+    <i data-lucide="orbit"></i>
+    <span class="label">Bohr shells</span>
+  </button>
+  <button class="dock-btn" id="resetBtn">
+    <i data-lucide="rotate-ccw"></i>
+    <span class="label">Reset</span>
+  </button>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { initScene, startLoop } from '../core/scene.js';
+import { ELEMENTS } from '../core/elements.js';
+import { buildAtom } from '../core/atom.js';
+import { buildCovalentBond } from '../core/bond.js';
+import { initIcons, setHintVisible, applyModeButton } from '../core/ui.js';
+
+/* =========================================================
+   PHASE 3 — H2O Covalent Bond
+   Three atoms: O at centre, H1 and H2 at 104.5 degrees.
+   Two sequential covalent bonds form via buildCovalentBond().
+   ========================================================= */
+
+const container = document.getElementById('scene');
+const { scene, camera, renderer, controls } = initScene(container, {
+  cameraPosition: [0, 2, 14],
+  minDistance: 5,
+  maxDistance: 26
+});
+
+/* ---- H2O geometry: bond angle 104.5 degrees ---- */
+// Oxygen at origin. Each H sits at bondLength away, spread
+// symmetrically around the Y axis at half the bond angle.
+const BOND_ANGLE_RAD = (104.5 / 2) * (Math.PI / 180);
+const BOND_DIST      = 3.8; // visual spacing (not pm — scaled for scene)
+
+const oPos  = new THREE.Vector3(0, 0, 0);
+const h1Pos = new THREE.Vector3(
+  -Math.sin(BOND_ANGLE_RAD) * BOND_DIST,
+   Math.cos(BOND_ANGLE_RAD) * BOND_DIST,
+   0
+);
+const h2Pos = new THREE.Vector3(
+   Math.sin(BOND_ANGLE_RAD) * BOND_DIST,
+   Math.cos(BOND_ANGLE_RAD) * BOND_DIST,
+   0
+);
+
+/* ---- Build atoms ---- */
+const oxygen     = buildAtom(ELEMENTS.O,  { position: oPos  });
+const hydrogen1  = buildAtom(ELEMENTS.H,  { position: h1Pos });
+const hydrogen2  = buildAtom(ELEMENTS.H,  { position: h2Pos });
+
+// Group all three into a molecule group so they rotate together
+const moleculeGroup = new THREE.Group();
+moleculeGroup.add(oxygen.group, hydrogen1.group, hydrogen2.group);
+scene.add(moleculeGroup);
+
+/* ---- Covalent bonds ---- */
+const bond1 = buildCovalentBond(oxygen, hydrogen1, scene);
+const bond2 = buildCovalentBond(oxygen, hydrogen2, scene);
+
+/* ---- Dipole arrow (shows after both bonds form) ----
+   Water is polar — net dipole points from O toward midpoint
+   between the two H atoms (O is delta-minus, Hs are delta-plus). */
+const dipoleGroup = new THREE.Group();
+scene.add(dipoleGroup);
+
+function buildDipoleArrow() {
+  // shaft
+  const shaftGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.6, 12);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0 });
+  const shaft = new THREE.Mesh(shaftGeo, mat.clone());
+
+  // arrowhead
+  const headGeo = new THREE.ConeGeometry(0.18, 0.45, 12);
+  const head = new THREE.Mesh(headGeo, mat.clone());
+
+  // position: shaft centred on O, pointing toward H midpoint
+  const hMid = h1Pos.clone().lerp(h2Pos, 0.5).normalize().multiplyScalar(1.5);
+  shaft.position.copy(hMid);
+  head.position.copy(hMid.clone().add(new THREE.Vector3(0, 0.9, 0)));
+
+  const dir = hMid.clone().normalize();
+  const up  = new THREE.Vector3(0, 1, 0);
+  shaft.quaternion.setFromUnitVectors(up, dir);
+  head.quaternion.setFromUnitVectors(up, dir);
+
+  dipoleGroup.add(shaft, head);
+  return { shaft, head, mat: shaft.material, headMat: head.material };
+}
+const dipole = buildDipoleArrow();
+
+function showDipole() {
+  const dur = 600;
+  const t0  = performance.now();
+  function step() {
+    const t = Math.min((performance.now() - t0) / dur, 1);
+    dipole.mat.opacity     = 0.85 * t;
+    dipole.headMat.opacity = 0.85 * t;
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function hideDipole() {
+  dipole.mat.opacity     = 0;
+  dipole.headMat.opacity = 0;
+}
+
+/* ---- Step indicator ---- */
+let bondsFormed = 0;
+
+function setStep(index) {
+  // dot states: 0=idle, 1=active, 2=done
+  const dots   = [0,1,2].map(i => document.getElementById(`dot${i}`));
+  const labels = [0,1,2].map(i => document.getElementById(`lbl${i}`));
+  const lines  = [0,1].map(i  => document.getElementById(`line${i}`));
+
+  dots.forEach((d, i) => {
+    d.classList.toggle('active', i === index);
+    d.classList.toggle('done',   i < index);
+  });
+  labels.forEach((l, i) => l.classList.toggle('active', i === index));
+  lines.forEach((l, i)  => l.classList.toggle('done', i < index));
+}
+
+function setBondState(text, formed = false) {
+  const el = document.getElementById('bondState');
+  el.textContent = text;
+  el.classList.toggle('formed', formed);
+}
+
+function updateBondsFormed(n) {
+  bondsFormed = n;
+  document.getElementById('bondsFormed').textContent = `${n} / 2`;
+}
+
+/* ---- Controls ---- */
+const hint    = document.getElementById('hint');
+const bondBtn = document.getElementById('bondBtn');
+const modeBtn = document.getElementById('modeBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+bondBtn.addEventListener('click', () => {
+  if (bond1.isAnimating || bond2.isAnimating) return;
+  if (bond1.isFormed && bond2.isFormed) return;
+
+  setHintVisible(hint, false);
+  bondBtn.disabled = true;
+  bondBtn.classList.remove('active');
+
+  if (!bond1.isFormed) {
+    // Step 1: form O-H1
+    setBondState('Forming O\u2013H\u2081 bond\u2026');
+    setStep(0);
+
+    bond1.form(() => {
+      updateBondsFormed(1);
+      setBondState('O\u2013H\u2081 bond formed');
+      setStep(1);
+
+      // Pause then form O-H2
+      setTimeout(() => {
+        setBondState('Forming O\u2013H\u2082 bond\u2026');
+
+        bond2.form(() => {
+          updateBondsFormed(2);
+          setBondState('H\u2082O molecule complete \u2014 polar covalent', true);
+          setStep(2);
+          showDipole();
+        });
+      }, bond1.PAUSE_BETWEEN ?? 500);
+    });
+
+  } else if (!bond2.isFormed) {
+    // If somehow only bond2 is missing
+    setBondState('Forming O\u2013H\u2082 bond\u2026');
+    bond2.form(() => {
+      updateBondsFormed(2);
+      setBondState('H\u2082O molecule complete \u2014 polar covalent', true);
+      setStep(2);
+      showDipole();
+    });
+  }
+});
+
+let cloudMode = false;
+modeBtn.addEventListener('click', () => {
+  cloudMode = !cloudMode;
+  oxygen.setMode(cloudMode);
+  hydrogen1.setMode(cloudMode);
+  hydrogen2.setMode(cloudMode);
+  applyModeButton(cloudMode, modeBtn);
+});
+
+resetBtn.addEventListener('click', () => {
+  bond1.reset();
+  bond2.reset();
+  hideDipole();
+  updateBondsFormed(0);
+  setBondState('No bonds formed yet');
+  setStep(-1);
+  bondBtn.disabled = false;
+  bondBtn.classList.add('active');
+  setHintVisible(hint, true);
+});
+
+/* ---- Gentle molecule rotation ---- */
+startLoop({ scene, camera, controls, renderer }, [
+  oxygen, hydrogen1, hydrogen2,
+  { update: (dt) => { moleculeGroup.rotation.y += dt * 0.025; } }
+]);
+
+setStep(-1);
+initIcons();
+</script>
+</body>
+</html>

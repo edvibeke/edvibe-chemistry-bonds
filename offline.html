@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quantum Bond — Offline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #070b14;
+    --panel:        #0e1626;
+    --panel-border: #1d2940;
+    --text:         #e7ecf7;
+    --text-dim:     #7d8cab;
+    --accent:       #5eead4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    max-width: 420px;
+    width: 100%;
+  }
+
+  /* ---- Atom animation (pure CSS, no Three.js needed) ---- */
+  .atom-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 28px;
+    position: relative;
+  }
+
+  .nucleus {
+    width: 22px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 16px rgba(94,234,212,0.5);
+  }
+
+  .orbit {
+    position: absolute;
+    top: 50%; left: 50%;
+    border: 1px solid rgba(94,234,212,0.25);
+    border-radius: 50%;
+    transform-origin: center center;
+  }
+
+  .orbit-1 {
+    width: 44px; height: 44px;
+    margin: -22px 0 0 -22px;
+    animation: spin 2.2s linear infinite;
+  }
+  .orbit-2 {
+    width: 64px; height: 64px;
+    margin: -32px 0 0 -32px;
+    animation: spin 3.6s linear infinite reverse;
+    transform: rotate(60deg);
+  }
+  .orbit-3 {
+    width: 80px; height: 80px;
+    margin: -40px 0 0 -40px;
+    animation: spin 5s linear infinite;
+    transform: rotate(30deg);
+  }
+
+  .electron {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: absolute;
+    top: -3px; left: 50%;
+    margin-left: -3px;
+    box-shadow: 0 0 6px rgba(94,234,212,0.8);
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* ---- Text ---- */
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.65;
+    margin-bottom: 28px;
+  }
+
+  /* ---- Phase links (cached, always work offline) ---- */
+  .phase-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .phase-link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .phase-link:hover {
+    border-color: var(--accent);
+    background: rgba(94,234,212,0.06);
+  }
+  .phase-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .phase-name {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ---- Retry button ---- */
+  .retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    text-decoration: none;
+  }
+  .retry-btn:hover { opacity: 0.88; }
+
+  .status-row {
+    margin-top: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  @media (max-width: 400px) {
+    .card { padding: 28px 20px; }
+    .phase-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- CSS atom animation — no Three.js required offline -->
+  <div class="atom-icon">
+    <div class="nucleus"></div>
+    <div class="orbit orbit-1"><div class="electron"></div></div>
+    <div class="orbit orbit-2"><div class="electron"></div></div>
+    <div class="orbit orbit-3"><div class="electron"></div></div>
+  </div>
+
+  <div class="sub">Quantum Bond &middot; EdVibe</div>
+  <h1>You are offline</h1>
+  <p>
+    No internet connection detected. If you have visited Quantum Bond before,
+    the cached phases below are available and will load instantly.
+    Connect once to unlock full offline access.
+  </p>
+
+  <!-- Cached phase quick-links -->
+  <div class="phase-grid">
+    <a class="phase-link" href="/quantum-bond/phase1/index.html">
+      <span class="phase-num">PHASE 1</span>
+      <span class="phase-name">Ion Formation</span>
+    </a>
+    <a class="phase-link" href="/quantum-bond/phase2/index.html">
+      <span class="phase-num">PHASE 2</span>
+      <span class="phase-name">Ionic Bond</span>
+    </a>
+    <a class="phase-link" href="/quantum-bond/phase3/index.html">
+      <span class="phase-num">PHASE 3</span>
+      <span class="phase-name">Covalent Bond</span>
+    </a>
+    <a class="phase-link" href="/quantum-bond/phase4/index.html">
+      <span class="phase-num">PHASE 4</span>
+      <span class="phase-name">Crystal Lattice</span>
+    </a>
+    <a class="phase-link" href="/quantum-bond/phase5/index.html">
+      <span class="phase-num">PHASE 5</span>
+      <span class="phase-name">Metallic Bond</span>
+    </a>
+    <a class="phase-link" href="/quantum-bond/phase6/index.html">
+      <span class="phase-num">PHASE 6</span>
+      <span class="phase-name">Sandbox</span>
+    </a>
+  </div>
+
+  <a class="retry-btn" href="javascript:window.location.reload()">
+    Try again
+  </a>
+
+  <div class="status-row" id="statusRow">
+    Checking connection&hellip;
+  </div>
+</div>
+
+<script>
+  /* Update status row with connection state */
+  function updateStatus() {
+    const el = document.getElementById('statusRow');
+    if (navigator.onLine) {
+      el.textContent = 'Connection restored — you can reload now';
+      el.style.color = '#5eead4';
+    } else {
+      el.textContent = 'Still offline — cached phases above work without internet';
+    }
+  }
+  updateStatus();
+  window.addEventListener('online',  updateStatus);
+  window.addEventListener('offline', updateStatus);
+</script>
+</body>
+</html>

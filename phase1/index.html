@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quantum Bond — Phase 1: Sodium Atom</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/theme.css">
+</head>
+<body>
+
+<div id="scene"></div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <i data-lucide="orbit" style="width:18px;height:18px;"></i>
+    </div>
+    <div class="brand-text">
+      <div class="title">Quantum Bond</div>
+      <div class="subtitle">EDVIBE &middot; ATOMIC STRUCTURE LAB</div>
+    </div>
+  </div>
+  <div class="phase-tag">PHASE 1 / 8 &middot; ION FORMATION</div>
+</div>
+
+<div class="hint" id="hint">
+  Drag to rotate the atom &nbsp;&middot;&nbsp; <span class="arrow">Click the nucleus to ionize</span>
+</div>
+
+<div class="readout">
+  <div class="symbol-row">
+    <span class="symbol" id="symbol">Na</span>
+    <span class="charge-sup" id="chargeSup">+1</span>
+  </div>
+  <div class="config-name" id="configName">Sodium &middot; neutral atom</div>
+
+  <div class="readout-row">
+    <span class="readout-label">PROTONS</span>
+    <span class="readout-value" id="protons">11</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">ELECTRONS</span>
+    <span class="readout-value electron" id="electrons">11</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">NET CHARGE</span>
+    <span class="readout-value" id="charge">0</span>
+  </div>
+  <div class="readout-row">
+    <span class="readout-label">RADIUS</span>
+    <span class="readout-value" id="radius">186 pm</span>
+  </div>
+
+  <div class="shells" id="shells"></div>
+</div>
+
+<div class="dock">
+  <button class="dock-btn active" id="modeBtn">
+    <i data-lucide="orbit"></i>
+    <span class="label">Bohr shells</span>
+  </button>
+  <button class="dock-btn" id="resetBtn">
+    <i data-lucide="rotate-ccw"></i>
+    <span class="label">Reset</span>
+  </button>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { initScene, startLoop } from '../core/scene.js';
+import { ELEMENTS } from '../core/elements.js';
+import { buildAtom } from '../core/atom.js';
+import { initIcons, buildShellPills, updateReadout, applyModeButton, setHintVisible } from '../core/ui.js';
+
+/* =========================================================
+   QUANTUM BOND — PHASE 1
+   Single sodium atom: Bohr shell <-> electron cloud toggle,
+   click-to-ionize (Na -> Na+).
+   All scene/atom/UI logic lives in /core — this file is
+   just wiring for Phase 1's specific demo.
+   ========================================================= */
+
+const container = document.getElementById('scene');
+const { scene, camera, renderer, controls } = initScene(container);
+
+const sodium = buildAtom(ELEMENTS.Na);
+scene.add(sodium.group);
+
+// ---------- DOM refs ----------
+const refs = {
+  symbol: document.getElementById('symbol'),
+  chargeSup: document.getElementById('chargeSup'),
+  configName: document.getElementById('configName'),
+  electronsValue: document.getElementById('electrons'),
+  chargeValue: document.getElementById('charge'),
+  radiusValue: document.getElementById('radius'),
+  shellsWrap: document.getElementById('shells')
+};
+document.getElementById('protons').textContent = ELEMENTS.Na.protons;
+
+buildShellPills(ELEMENTS.Na, refs.shellsWrap);
+updateReadout(sodium, refs);
+
+const hint = document.getElementById('hint');
+const modeBtn = document.getElementById('modeBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+// ---------- Click-to-ionize ----------
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (sodium.isAnimating) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const hits = raycaster.intersectObject(sodium.nucleus, false);
+  if (hits.length === 0) return;
+
+  setHintVisible(hint, false);
+
+  if (!sodium.isIonized) {
+    sodium.loseElectron(() => updateReadout(sodium, refs));
+  } else {
+    sodium.restoreFromCation(() => updateReadout(sodium, refs));
+  }
+});
+
+// ---------- Mode toggle ----------
+modeBtn.addEventListener('click', () => {
+  sodium.setMode(!sodium.cloudMode);
+  applyModeButton(sodium.cloudMode, modeBtn);
+});
+
+// ---------- Reset ----------
+resetBtn.addEventListener('click', () => {
+  if (sodium.isIonized && !sodium.isAnimating) {
+    sodium.restoreFromCation(() => updateReadout(sodium, refs));
+  }
+  setHintVisible(hint, true);
+});
+
+// ---------- Animation loop ----------
+startLoop({ scene, camera, controls, renderer }, [
+  sodium,
+  { update: (dt) => { sodium.group.rotation.y += dt * 0.03; } } // gentle idle drift
+]);
+
+initIcons();
+</script>
+</body>
+</html>

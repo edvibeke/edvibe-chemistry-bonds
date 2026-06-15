@@ -1,0 +1,235 @@
+/* =========================================================
+   QUANTUM BOND — SHARED THEME
+   Design tokens + component styles used by every phase.
+   Edit colors/fonts here once; every phase picks it up.
+   ========================================================= */
+
+:root {
+  --bg: #070b14;
+  --panel: #0e1626;
+  --panel-border: #1d2940;
+  --text: #e7ecf7;
+  --text-dim: #7d8cab;
+  --accent: #5eead4;      /* electron / electric cyan */
+  --accent-soft: rgba(94, 234, 212, 0.18);
+  --ion: #fbbf24;         /* ionization amber */
+  --ion-soft: rgba(251, 191, 36, 0.18);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  overflow: hidden;
+}
+
+#scene { position: fixed; inset: 0; }
+canvas { display: block; touch-action: none; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.brand-mark {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+}
+
+.brand-text { line-height: 1.1; }
+.brand-text .title { font-weight: 600; font-size: 15px; letter-spacing: 0.02em; }
+.brand-text .subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+
+.phase-tag {
+  pointer-events: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 7px 14px;
+}
+
+/* ---------- Readout panel (bottom-left) ---------- */
+.readout {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 230px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+  z-index: 10;
+  backdrop-filter: blur(6px);
+}
+
+.readout-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+.readout-row:last-child { border-bottom: none; }
+
+.readout-label { color: var(--text-dim); letter-spacing: 0.04em; }
+.readout-value {
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+.readout-value.charged { color: var(--ion); }
+.readout-value.electron { color: var(--accent); }
+
+.symbol-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.symbol {
+  font-size: 30px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--element-color, var(--accent));
+  transition: color 0.4s ease;
+}
+.symbol.charged { color: var(--ion); }
+.charge-sup {
+  font-size: 16px;
+  vertical-align: super;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.charge-sup.visible { opacity: 1; }
+
+.config-name { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+/* shell configuration pills */
+.shells {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.shell-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.shell-pill .count { color: var(--accent); font-weight: 600; }
+.shell-pill.depleted .count { color: var(--ion); }
+
+/* ---------- Controls dock (bottom-right) ---------- */
+.dock {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.dock-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 11px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.dock-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.dock-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dock-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dock-btn svg { width: 16px; height: 16px; }
+
+/* ---------- Hint ---------- */
+.hint {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+  z-index: 5;
+}
+.hint.hidden { opacity: 0; }
+.hint .arrow { color: var(--accent); font-weight: 600; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+@media (max-width: 560px) {
+  .readout { width: 190px; padding: 12px; }
+  .dock-btn span.label { display: none; }
+  .dock-btn { padding: 11px; }
+}

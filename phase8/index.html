@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quantum Bond — Phase 8: Quiz Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/theme.css">
+<style>
+  .dock { left:50%; right:auto; transform:translateX(-50%); }
+
+  /* ============================================================
+     CHALLENGE CARD (top-centre)
+  ============================================================ */
+  .challenge-card {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 12;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 14px 20px;
+    width: min(420px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.3s ease;
+  }
+  .challenge-card.correct { border-color: var(--accent); }
+  .challenge-card.wrong   { border-color: #ef4444; }
+
+  .challenge-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .challenge-level {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+  .challenge-target {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .challenge-formula {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; color: var(--accent);
+  }
+  .challenge-bond {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-dim);
+  }
+
+  /* Stars row */
+  .stars-row { display:flex; gap:5px; align-items:center; }
+  .star {
+    font-size: 16px;
+    color: var(--panel-border);
+    transition: color 0.3s ease, transform 0.3s ease;
+  }
+  .star.lit { color: var(--ion); transform: scale(1.2); }
+
+  /* Attempts */
+  .attempts-row {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* ============================================================
+     CLUE PANEL (below challenge card)
+  ============================================================ */
+  .clue-panel {
+    position: fixed;
+    top: 208px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 12;
+    width: min(420px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .clue-item {
+    background: rgba(94,234,212,0.06);
+    border: 1px solid rgba(94,234,212,0.2);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .clue-item.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .clue-num { color: var(--accent); margin-right: 6px; font-weight: 600; }
+
+  /* ============================================================
+     SCORE PANEL (top-right drawer)
+  ============================================================ */
+  .score-panel {
+    position: fixed;
+    top: 70px; right: 20px;
+    z-index: 12;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .score-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    color: var(--text-dim); text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .score-big {
+    font-size: 32px; font-weight: 700;
+    color: var(--accent); line-height: 1;
+  }
+  .score-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+  }
+  .score-divider { border:none; border-top:1px solid var(--panel-border); }
+
+  /* ============================================================
+     FEEDBACK TOAST (centre, above canvas)
+  ============================================================ */
+  .feedback-toast {
+    position: fixed;
+    bottom: 160px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 12px 20px;
+    width: min(400px, 90vw);
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .feedback-toast.visible { opacity: 1; }
+  .feedback-toast.success { border-color: var(--accent); }
+  .feedback-toast.error   { border-color: #ef4444; }
+
+  .feedback-title {
+    font-size: 15px; font-weight: 700; margin-bottom: 4px;
+  }
+  .feedback-toast.success .feedback-title { color: var(--accent); }
+  .feedback-toast.error   .feedback-title { color: #ef4444; }
+
+  .feedback-msg {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-dim); line-height: 1.55;
+  }
+
+  /* ============================================================
+     FACT CARD (shows on success, full-width)
+  ============================================================ */
+  .fact-card {
+    position: fixed;
+    bottom: 160px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 16px 20px;
+    width: min(440px, 92vw);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .fact-card.visible { opacity: 1; }
+  .fact-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .fact-text {
+    font-size: 13px; color: var(--text); line-height: 1.6;
+  }
+
+  /* ============================================================
+     PERIODIC TABLE (bottom slide-up — reuse Phase 6 pattern)
+  ============================================================ */
+  .ptable-wrap {
+    position: fixed; bottom:0; left:50%;
+    transform: translateX(-50%) translateY(0);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    z-index: 15; display:flex; flex-direction:column; align-items:center;
+  }
+  .ptable-wrap.collapsed {
+    transform: translateX(-50%) translateY(calc(100% - 32px));
+  }
+  .ptable-handle {
+    width:80px; height:32px; background:var(--panel);
+    border:1px solid var(--panel-border); border-bottom:none;
+    border-radius:10px 10px 0 0; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; gap:6px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ptable-handle-bar {
+    width:28px; height:3px; border-radius:999px;
+    background:var(--text-dim); transition:background 0.2s;
+  }
+  .ptable-handle:hover .ptable-handle-bar { background:var(--accent); }
+  .ptable-panel {
+    background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:14px 14px 0 0; padding:12px 14px 16px;
+    width:min(560px, 96vw);
+  }
+  .ptable-title {
+    font-family:'IBM Plex Mono',monospace; font-size:10px;
+    letter-spacing:0.1em; color:var(--text-dim); text-transform:uppercase;
+    text-align:center; margin-bottom:10px;
+  }
+  .ptable-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:4px; }
+  .el-btn {
+    aspect-ratio:1; border-radius:6px; border:1px solid transparent; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    transition:transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    -webkit-tap-highlight-color:transparent; user-select:none; position:relative;
+  }
+  .el-btn:active { transform:scale(0.88); }
+  .el-btn:hover  { border-color:var(--accent); box-shadow:0 0 8px rgba(94,234,212,0.35); transform:scale(1.08); z-index:2; }
+  .el-btn.disabled { opacity:0.25; cursor:not-allowed; pointer-events:none; }
+  .el-btn.selected { border-color:var(--accent); background:rgba(94,234,212,0.12); }
+  .el-symbol { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:clamp(9px,2.2vw,13px); color:#fff; line-height:1; }
+  .el-z      { font-family:'IBM Plex Mono',monospace; font-size:clamp(6px,1.4vw,8px); color:rgba(255,255,255,0.55); line-height:1; }
+  .el-count  { position:absolute; top:2px; right:3px; font-family:'IBM Plex Mono',monospace; font-size:8px; font-weight:700; color:var(--accent); line-height:1; }
+
+  /* ============================================================
+     LEVEL SELECTOR (shown at start)
+  ============================================================ */
+  .level-screen {
+    position: fixed; inset:0; z-index:30;
+    background: rgba(7,11,20,0.96);
+    display: flex; align-items:center; justify-content:center;
+    padding: 24px;
+  }
+  .level-screen.hidden { display:none; }
+  .level-box {
+    background: var(--panel); border:1px solid var(--panel-border);
+    border-radius: 20px; padding: 36px 32px;
+    max-width: 380px; width:100%; text-align:center;
+  }
+  .level-title { font-size:22px; font-weight:700; margin-bottom:8px; }
+  .level-sub {
+    font-family:'IBM Plex Mono',monospace; font-size:11px;
+    color:var(--text-dim); letter-spacing:0.06em; margin-bottom:28px;
+  }
+  .level-btns { display:flex; flex-direction:column; gap:10px; }
+  .level-btn {
+    padding:14px 20px; border-radius:12px; border:1px solid var(--panel-border);
+    background:rgba(255,255,255,0.03); cursor:pointer;
+    font-family:'Space Grotesk',sans-serif; color:var(--text);
+    text-align:left; transition:border-color 0.2s, background 0.2s;
+    display:flex; align-items:center; gap:14px;
+  }
+  .level-btn:hover { border-color:var(--accent); background:rgba(94,234,212,0.06); }
+  .level-btn-num {
+    font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:700;
+    width:32px; text-align:center;
+  }
+  .level-btn-info { display:flex; flex-direction:column; gap:2px; }
+  .level-btn-name { font-size:15px; font-weight:600; }
+  .level-btn-desc { font-size:12px; color:var(--text-dim); }
+
+  /* Dock active */
+  .dock-btn.active { color:var(--accent); border-color:var(--accent); background:rgba(94,234,212,0.08); }
+
+  @media (max-width:640px) {
+    .score-panel { width:120px; padding:10px 12px; }
+    .score-big   { font-size:24px; }
+    .challenge-card { top:64px; }
+    .clue-panel  { top:190px; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><i data-lucide="orbit" style="width:18px;height:18px;"></i></div>
+    <div class="brand-text">
+      <div class="title">Quantum Bond</div>
+      <div class="subtitle">EDVIBE &middot; ATOMIC STRUCTURE LAB</div>
+    </div>
+  </div>
+  <div class="phase-tag">PHASE 8 / 8 &middot; QUIZ MODE</div>
+</div>
+
+<!-- Level selector -->
+<div class="level-screen" id="levelScreen">
+  <div class="level-box">
+    <div class="level-title">Choose Your Level</div>
+    <div class="level-sub">Challenges are randomised from a pool &middot; no two sessions alike</div>
+    <div class="level-btns">
+      <button class="level-btn" data-level="1">
+        <span class="level-btn-num" style="color:#1ff01f">1</span>
+        <div class="level-btn-info">
+          <span class="level-btn-name">Ionic Bonds</span>
+          <span class="level-btn-desc">NaCl, MgO, KCl, CaO — electron transfer</span>
+        </div>
+      </button>
+      <button class="level-btn" data-level="2">
+        <span class="level-btn-num" style="color:#fbbf24">2</span>
+        <div class="level-btn-info">
+          <span class="level-btn-name">Covalent Bonds</span>
+          <span class="level-btn-desc">H₂O, HCl, H₂ — electron sharing</span>
+        </div>
+      </button>
+      <button class="level-btn" data-level="3">
+        <span class="level-btn-num" style="color:#ef4444">3</span>
+        <div class="level-btn-info">
+          <span class="level-btn-name">Mixed</span>
+          <span class="level-btn-desc">CO₂, CaCl₂, MgO — all bond types</span>
+        </div>
+      </button>
+      <button class="level-btn" data-level="0">
+        <span class="level-btn-num" style="color:#ab5cf2">&#8734;</span>
+        <div class="level-btn-info">
+          <span class="level-btn-name">All Levels</span>
+          <span class="level-btn-desc">Full random pool — the ultimate challenge</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Challenge card -->
+<div class="challenge-card" id="challengeCard">
+  <div class="challenge-top">
+    <span class="challenge-level" id="challengeLevel">LEVEL 1</span>
+    <div class="stars-row">
+      <span class="star" id="star0">&#9733;</span>
+      <span class="star" id="star1">&#9733;</span>
+      <span class="star" id="star2">&#9733;</span>
+    </div>
+  </div>
+  <div class="challenge-target" id="challengeTarget">—</div>
+  <div style="display:flex; gap:14px; align-items:baseline;">
+    <span class="challenge-formula" id="challengeFormula">—</span>
+    <span class="challenge-bond"    id="challengeBond">—</span>
+  </div>
+  <div class="attempts-row" id="attemptsRow">Attempt 1 of 3</div>
+</div>
+
+<!-- Clue panel -->
+<div class="clue-panel" id="cluePanel"></div>
+
+<!-- Score panel -->
+<div class="score-panel">
+  <div class="score-title">Session Score</div>
+  <div class="score-big" id="scoreVal">0</div>
+  <div class="score-sub" id="scoreStars">0 stars earned</div>
+  <hr class="score-divider">
+  <div class="score-sub">Streak: <span id="streakVal" style="color:var(--accent)">0</span></div>
+  <div class="score-sub">Best: <span id="bestVal" style="color:var(--ion)">0</span></div>
+  <div class="score-sub">Answered: <span id="answeredVal">0</span></div>
+</div>
+
+<!-- Feedback toast -->
+<div class="feedback-toast" id="feedbackToast">
+  <div class="feedback-title" id="feedbackTitle">—</div>
+  <div class="feedback-msg"   id="feedbackMsg">—</div>
+</div>
+
+<!-- Fact card -->
+<div class="fact-card" id="factCard">
+  <div class="fact-label">Did you know?</div>
+  <div class="fact-text" id="factText">—</div>
+</div>
+
+<!-- Periodic table -->
+<div class="ptable-wrap" id="ptableWrap">
+  <div class="ptable-handle" id="ptableHandle">
+    <div class="ptable-handle-bar"></div>
+    <div class="ptable-handle-bar"></div>
+  </div>
+  <div class="ptable-panel">
+    <div class="ptable-title">Tap an element to add it to the scene</div>
+    <div class="ptable-grid" id="ptableGrid"></div>
+  </div>
+</div>
+
+<!-- Dock -->
+<div class="dock">
+  <button class="dock-btn" id="hintBtn">
+    <i data-lucide="lightbulb"></i>
+    <span class="label">Hint</span>
+  </button>
+  <button class="dock-btn active" id="checkBtn">
+    <i data-lucide="check-circle"></i>
+    <span class="label">Check</span>
+  </button>
+  <button class="dock-btn" id="skipBtn">
+    <i data-lucide="skip-forward"></i>
+    <span class="label">Skip</span>
+  </button>
+  <button class="dock-btn" id="clearBtn">
+    <i data-lucide="trash-2"></i>
+    <span class="label">Clear</span>
+  </button>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { initScene, startLoop }  from '../core/scene.js';
+import { buildSandbox, ELEMENTS } from '../core/sandbox.js';
+import { evaluateAttempt, celebrateSuccess, shakeGroup, flashRed, createPicker, QuizSession } from '../core/quiz.js';
+import { initIcons } from '../core/ui.js';
+
+/* =========================================================
+   PHASE 8 — Quiz Mode
+   ========================================================= */
+
+const container = document.getElementById('scene');
+const { scene, camera, renderer, controls } = initScene(container, {
+  cameraPosition: [0, 0, 10],
+  minDistance: 4, maxDistance: 28, fogDensity: 0.007
+});
+
+const sandbox = buildSandbox(scene, camera, renderer, { onUpdate: () => {} });
+const session = new QuizSession();
+
+let picker    = null;
+let current   = null;
+let clueIndex = 0;
+let blocked   = false; // prevent double-submit during animations
+
+/* ---- DOM refs ---- */
+const levelScreen    = document.getElementById('levelScreen');
+const challengeCard  = document.getElementById('challengeCard');
+const challengeLevel = document.getElementById('challengeLevel');
+const challengeTarget= document.getElementById('challengeTarget');
+const challengeFormula=document.getElementById('challengeFormula');
+const challengeBond  = document.getElementById('challengeBond');
+const attemptsRow    = document.getElementById('attemptsRow');
+const cluePanel      = document.getElementById('cluePanel');
+const feedbackToast  = document.getElementById('feedbackToast');
+const feedbackTitle  = document.getElementById('feedbackTitle');
+const feedbackMsg    = document.getElementById('feedbackMsg');
+const factCard       = document.getElementById('factCard');
+const factText       = document.getElementById('factText');
+const ptableWrap     = document.getElementById('ptableWrap');
+const ptableGrid     = document.getElementById('ptableGrid');
+const scoreVal       = document.getElementById('scoreVal');
+const scoreStars     = document.getElementById('scoreStars');
+const streakVal      = document.getElementById('streakVal');
+const bestVal        = document.getElementById('bestVal');
+const answeredVal    = document.getElementById('answeredVal');
+const checkBtn       = document.getElementById('checkBtn');
+const hintBtn        = document.getElementById('hintBtn');
+const skipBtn        = document.getElementById('skipBtn');
+const clearBtn       = document.getElementById('clearBtn');
+
+/* ---- Periodic table ---- */
+const NOBLE_GASES   = new Set(['He','Ne','Ar']);
+const ELEMENT_ORDER = [
+  'H',null,null,null,null,null,null,null,null,'He',
+  'Li','Be',null,null,null,'B','C','N','O','F',
+  'Ne','Na','Mg',null,null,null,'Al','Si','P','S',
+  'Cl','Ar','K','Ca',
+];
+const elButtons = {};
+
+ptableWrap.classList.add('collapsed');
+
+ELEMENT_ORDER.forEach(sym => {
+  const cell = document.createElement('div');
+  if (!sym) {
+    cell.style.cssText = 'visibility:hidden;aspect-ratio:1';
+    ptableGrid.appendChild(cell); return;
+  }
+  const el  = ELEMENTS[sym];
+  const hex = `#${el.color.toString(16).padStart(6,'0')}`;
+  cell.className = 'el-btn' + (NOBLE_GASES.has(sym) ? ' disabled' : '');
+  cell.style.background  = hex + '22';
+  cell.style.borderColor = hex + '55';
+  cell.innerHTML = `<span class="el-z">${el.z}</span><span class="el-symbol" style="color:${hex}">${sym}</span><span class="el-count" id="count-${sym}"></span>`;
+  cell.addEventListener('click', () => {
+    if (sandbox.atoms.length >= 4 || NOBLE_GASES.has(sym) || blocked) return;
+    sandbox.addAtom(el, window.innerWidth/2, window.innerHeight/2);
+    refreshButtons();
+    hideFeedback();
+  });
+  ptableGrid.appendChild(cell);
+  elButtons[sym] = cell;
+});
+
+document.getElementById('ptableHandle').addEventListener('click', () => {
+  ptableWrap.classList.toggle('collapsed');
+});
+
+function refreshButtons() {
+  const full   = sandbox.atoms.length >= 4;
+  const counts = {};
+  sandbox.atoms.forEach(a => { counts[a.element.symbol] = (counts[a.element.symbol]||0)+1; });
+  Object.keys(elButtons).forEach(sym => {
+    elButtons[sym].classList.toggle('disabled', full);
+    const cEl = document.getElementById(`count-${sym}`);
+    if (cEl) cEl.textContent = counts[sym] ? `\u00d7${counts[sym]}` : '';
+  });
+}
+
+/* ---- Challenge loading ---- */
+function loadChallenge(challenge) {
+  current    = challenge;
+  clueIndex  = 0;
+  blocked    = false;
+
+  challengeLevel.textContent  = `LEVEL ${challenge.level}`;
+  challengeTarget.textContent = challenge.target;
+  challengeFormula.textContent= challenge.formula;
+  challengeBond.textContent   = `${challenge.bondType} bond`;
+  attemptsRow.textContent     = 'Attempt 1 of 3';
+
+  /* Reset stars */
+  [0,1,2].forEach(i => document.getElementById(`star${i}`).classList.remove('lit'));
+  [0,1,2].forEach(i => document.getElementById(`star${i}`).classList.add('lit'));
+
+  challengeCard.classList.remove('correct','wrong');
+  cluePanel.innerHTML = '';
+  hideFeedback();
+  hideFactCard();
+
+  sandbox.clear();
+  refreshButtons();
+  session.nextQuestion();
+}
+
+function nextChallenge() {
+  if (!picker) return;
+  loadChallenge(picker.next());
+}
+
+/* ---- Stars display ---- */
+function setStars(count) {
+  [0,1,2].forEach(i => {
+    document.getElementById(`star${i}`).classList.toggle('lit', i < count);
+  });
+}
+
+/* ---- Score panel ---- */
+function updateScore() {
+  scoreVal.textContent    = session.sessionScore;
+  scoreStars.textContent  = `${session.sessionScore} stars earned`;
+  streakVal.textContent   = session.streak;
+  bestVal.textContent     = session.bestStreak;
+  answeredVal.textContent = session.totalAnswered;
+}
+updateScore();
+
+/* ---- Feedback helpers ---- */
+let feedbackTimeout = null;
+function showFeedback(type, title, msg, duration = 3200) {
+  feedbackToast.className = `feedback-toast ${type} visible`;
+  feedbackTitle.textContent = title;
+  feedbackMsg.textContent   = msg;
+  clearTimeout(feedbackTimeout);
+  if (duration > 0) feedbackTimeout = setTimeout(hideFeedback, duration);
+}
+function hideFeedback() {
+  feedbackToast.classList.remove('visible');
+}
+function showFactCard(text) {
+  factText.textContent = text;
+  factCard.classList.add('visible');
+}
+function hideFactCard() {
+  factCard.classList.remove('visible');
+}
+
+/* ---- Clue reveal ---- */
+function revealNextClue() {
+  if (!current) return;
+  if (clueIndex >= current.clues.length) {
+    showFeedback('error', 'No more hints', 'Try using the clues already revealed.');
+    return;
+  }
+  const item = document.createElement('div');
+  item.className = 'clue-item';
+  item.innerHTML = `<span class="clue-num">${clueIndex+1}.</span>${current.clues[clueIndex]}`;
+  cluePanel.appendChild(item);
+  requestAnimationFrame(() => item.classList.add('visible'));
+  clueIndex++;
+}
+
+/* ---- Check answer ---- */
+checkBtn.addEventListener('click', () => {
+  if (!current || blocked) return;
+  if (sandbox.atoms.length === 0) {
+    showFeedback('error', 'No atoms placed', 'Tap elements from the periodic table below to add them to the scene.');
+    return;
+  }
+
+  const result = evaluateAttempt(current, sandbox.atoms, sandbox.bonds);
+
+  if (result.pass) {
+    /* ---- Correct ---- */
+    blocked = true;
+    const stars = session.correct();
+    updateScore();
+    setStars(stars);
+    challengeCard.classList.add('correct');
+
+    /* Centre of placed atoms */
+    const centre = new THREE.Vector3();
+    sandbox.atoms.forEach(a => centre.add(a.atom3d.group.position));
+    centre.divideScalar(sandbox.atoms.length);
+    celebrateSuccess(scene, centre);
+
+    showFeedback('success',
+      stars === 3 ? 'Perfect — first try!' : stars === 2 ? 'Correct — second attempt' : 'Correct',
+      `${current.formula} built successfully.`, 0);
+
+    setTimeout(() => {
+      showFactCard(current.fact);
+      setTimeout(() => {
+        hideFactCard();
+        hideFeedback();
+        nextChallenge();
+        blocked = false;
+      }, 4500);
+    }, 1200);
+
+  } else {
+    /* ---- Wrong ---- */
+    const attempts = session.wrong();
+    const remaining = Math.max(0, 3 - attempts);
+    setStars(remaining);
+    attemptsRow.textContent = `Attempt ${Math.min(attempts+1,3)} of 3 · ${remaining} star${remaining!==1?'s':''} remaining`;
+    challengeCard.classList.add('wrong');
+    setTimeout(() => challengeCard.classList.remove('wrong'), 700);
+
+    flashRed(sandbox.atoms, scene, null);
+    shakeGroup(sandbox.group);
+
+    const topError = result.errors[0] || 'Check your atoms and bond type.';
+    showFeedback('error',
+      attempts === 1 ? 'Not quite' : attempts === 2 ? 'Try again' : 'Keep going',
+      topError, 3500);
+
+    /* Auto-reveal a clue after 2nd wrong attempt */
+    if (attempts === 2 && clueIndex === 0) revealNextClue();
+    if (attempts >= 3  && clueIndex < 2)  revealNextClue();
+  }
+});
+
+/* ---- Hint ---- */
+hintBtn.addEventListener('click', () => revealNextClue());
+
+/* ---- Skip ---- */
+skipBtn.addEventListener('click', () => {
+  if (blocked) return;
+  hideFeedback();
+  hideFactCard();
+  nextChallenge();
+});
+
+/* ---- Clear ---- */
+clearBtn.addEventListener('click', () => {
+  if (blocked) return;
+  sandbox.clear();
+  refreshButtons();
+  hideFeedback();
+});
+
+/* ---- Drag atoms ---- */
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  const picked = sandbox.pickAtom(e.clientX, e.clientY);
+  if (!picked) return;
+  e.stopPropagation();
+  controls.enabled = false;
+  sandbox.startDrag(picked, e);
+  hideFeedback();
+});
+renderer.domElement.addEventListener('pointerup', () => { controls.enabled = true; });
+
+/* ---- Level selector ---- */
+document.querySelectorAll('.level-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const level = Number(btn.dataset.level);
+    picker = createPicker(level === 0 ? null : level);
+    levelScreen.classList.add('hidden');
+    ptableWrap.classList.remove('collapsed');
+    nextChallenge();
+    bestVal.textContent = session.bestStreak;
+  });
+});
+
+/* ---- Loop ---- */
+startLoop({ scene, camera, controls, renderer }, [
+  { update: (dt) => sandbox.update(dt) }
+]);
+
+initIcons();
+</script>
+</body>
+</html>

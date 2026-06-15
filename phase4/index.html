@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quantum Bond — Phase 4: NaCl Crystal Lattice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/theme.css">
+<style>
+  .dock {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  /* ============================================================
+     SLIDE DRAWER — same pattern as Phase 5
+  ============================================================ */
+  .drawer-wrap {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%) translateX(0);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 15;
+    display: flex;
+    align-items: center;
+  }
+  .drawer-wrap.closed {
+    transform: translateY(-50%) translateX(calc(-100% + 22px));
+  }
+
+  .readout {
+    width: 220px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 0 14px 14px 0;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 80vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .readout::-webkit-scrollbar { display: none; }
+
+  .drawer-tab {
+    width: 22px;
+    height: 56px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .drawer-tab:hover { background: var(--panel-border); }
+  .drawer-tab svg {
+    width: 12px;
+    height: 12px;
+    color: var(--text-dim);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .drawer-wrap.closed .drawer-tab svg {
+    transform: rotate(180deg);
+  }
+
+  /* ---- Slider controls ---- */
+  .controls-wrap {
+    position: fixed;
+    bottom: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 300px;
+  }
+  .ctrl-row { display: flex; flex-direction: column; gap: 5px; }
+  .ctrl-header { display: flex; justify-content: space-between; align-items: center; }
+  .ctrl-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .ctrl-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--panel-border);
+    outline: none;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 6px rgba(94,234,212,0.6);
+  }
+  .slider::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  .slider:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ---- Ion tooltip ---- */
+  .ion-tooltip {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+  }
+  .ion-tooltip.visible { opacity: 1; }
+  .ion-tooltip .ion-sym { font-size: 15px; font-weight: 700; margin-right: 6px; }
+  .ion-tooltip .na-col  { color: #ab5cf2; }
+  .ion-tooltip .cl-col  { color: #1ff01f; }
+
+  /* ---- Legend ---- */
+  .legend {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .legend-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ---- Selected ion section ---- */
+  .selected-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--panel-border);
+  }
+  .selected-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* ---- Assembly overlay ---- */
+  .assembly-msg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.5s ease;
+  }
+  .assembly-msg.hidden { opacity: 0; }
+
+  @media (max-width: 640px) {
+    .legend { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><i data-lucide="orbit" style="width:18px;height:18px;"></i></div>
+    <div class="brand-text">
+      <div class="title">Quantum Bond</div>
+      <div class="subtitle">EDVIBE &middot; ATOMIC STRUCTURE LAB</div>
+    </div>
+  </div>
+  <div class="phase-tag">PHASE 4 / 8 &middot; CRYSTAL LATTICE</div>
+</div>
+
+<!-- Assembly message -->
+<div class="assembly-msg" id="assemblyMsg">
+  Building crystal lattice from centre outward&hellip;
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#ab5cf2;"></div>
+    <span style="color:#ab5cf2;">Na<sup>+</sup> &nbsp;Sodium cation</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#1ff01f;"></div>
+    <span style="color:#1ff01f;">Cl<sup>&#x2212;</sup> &nbsp;Chloride anion</span>
+  </div>
+</div>
+
+<!-- Ion tooltip -->
+<div class="ion-tooltip" id="ionTooltip">
+  <span class="ion-sym na-col" id="tooltipSym">Na</span>
+  <span id="tooltipInfo">Sodium cation &middot; +1 charge</span>
+</div>
+
+<!-- ============================================================
+     SLIDE DRAWER
+============================================================ -->
+<div class="drawer-wrap" id="drawerWrap">
+
+  <div class="readout">
+    <div class="symbol-row">
+      <span class="symbol" style="--element-color:#e7ecf7; font-size:20px;">NaCl</span>
+    </div>
+    <div class="config-name">Sodium chloride · ionic crystal</div>
+
+    <div class="readout-row">
+      <span class="readout-label">STRUCTURE</span>
+      <span class="readout-value" style="color:var(--accent)">Face-centred cubic</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">LATTICE SIZE</span>
+      <span class="readout-value" id="latticeSize">3 × 3 × 3</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">TOTAL IONS</span>
+      <span class="readout-value" id="totalIons">27</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">Na⁺ IONS</span>
+      <span class="readout-value" style="color:#ab5cf2" id="naCount">14</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">Cl⁻ IONS</span>
+      <span class="readout-value" style="color:#1ff01f" id="clCount">13</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">BOND TYPE</span>
+      <span class="readout-value charged">Ionic</span>
+    </div>
+    <div class="readout-row">
+      <span class="readout-label">Na-Cl LENGTH</span>
+      <span class="readout-value">281 pm</span>
+    </div>
+
+    <div class="selected-section">
+      <div class="selected-label">🔍 SELECTED ION</div>
+      <div class="readout-row">
+        <span class="readout-label">Type</span>
+        <span class="readout-value" id="selectedType">—</span>
+      </div>
+      <div class="readout-row">
+        <span class="readout-label">Position (x,y,z)</span>
+        <span class="readout-value" id="selectedPos" style="font-family:monospace;font-size:11px;">—</span>
+      </div>
+      <div class="readout-row">
+        <span class="readout-label">Charge</span>
+        <span class="readout-value" id="selectedCharge">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pull tab -->
+  <div class="drawer-tab" id="drawerTab" aria-label="Toggle info panel">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="8,2 4,6 8,10"/>
+    </svg>
+  </div>
+
+</div>
+<!-- end drawer-wrap -->
+
+<!-- Slider controls -->
+<div class="controls-wrap">
+  <div class="ctrl-row">
+    <div class="ctrl-header">
+      <span class="ctrl-label">Cross-section</span>
+      <span class="ctrl-value" id="crossVal">None</span>
+    </div>
+    <input type="range" class="slider" id="crossSlider"
+           min="0" max="100" value="0" step="1" disabled>
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-header">
+      <span class="ctrl-label">Lattice size</span>
+      <span class="ctrl-value" id="sizeVal">3 &times; 3 &times; 3</span>
+    </div>
+    <input type="range" class="slider" id="sizeSlider"
+           min="3" max="5" value="3" step="1" disabled>
+  </div>
+</div>
+
+<!-- Dock -->
+<div class="dock">
+  <button class="dock-btn" id="resetBtn">
+    <i data-lucide="rotate-ccw"></i>
+    <span class="label">Rebuild</span>
+  </button>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { initScene, startLoop } from '../core/scene.js';
+import { buildLattice } from '../core/lattice.js';
+import { initIcons } from '../core/ui.js';
+
+const container = document.getElementById('scene');
+const { scene, camera, renderer, controls } = initScene(container, {
+  cameraPosition: [0, 5, 18],
+  minDistance: 4,
+  maxDistance: 40,
+  fogDensity: 0.010
+});
+
+/* ---- Drawer toggle ---- */
+const drawerWrap = document.getElementById('drawerWrap');
+const drawerTab  = document.getElementById('drawerTab');
+let drawerOpen   = true;
+
+drawerTab.addEventListener('click', () => {
+  drawerOpen = !drawerOpen;
+  drawerWrap.classList.toggle('closed', !drawerOpen);
+});
+
+/* ---- DOM refs ---- */
+const assemblyMsg = document.getElementById('assemblyMsg');
+const crossSlider = document.getElementById('crossSlider');
+const sizeSlider  = document.getElementById('sizeSlider');
+const crossVal    = document.getElementById('crossVal');
+const sizeVal     = document.getElementById('sizeVal');
+const ionTooltip  = document.getElementById('ionTooltip');
+const tooltipSym  = document.getElementById('tooltipSym');
+const tooltipInfo = document.getElementById('tooltipInfo');
+const resetBtn    = document.getElementById('resetBtn');
+
+/* ---- Helpers ---- */
+function updateReadout(size) {
+  const total = size * size * size;
+  const na    = Math.ceil(total / 2);
+  const cl    = Math.floor(total / 2);
+  document.getElementById('latticeSize').textContent = `${size} \u00d7 ${size} \u00d7 ${size}`;
+  document.getElementById('totalIons').textContent   = total;
+  document.getElementById('naCount').textContent     = na;
+  document.getElementById('clCount').textContent     = cl;
+}
+
+function enableControls(enabled) {
+  crossSlider.disabled = !enabled;
+  sizeSlider.disabled  = !enabled;
+}
+
+function onAssembled() {
+  assemblyMsg.classList.add('hidden');
+  enableControls(true);
+}
+
+/* ---- Build lattice ---- */
+let lattice = buildLattice(scene, renderer, { size: 3, onAssembled });
+updateReadout(3);
+
+/* ---- Auto-rotation ---- */
+let userInteracting = false;
+controls.addEventListener('start', () => userInteracting = true);
+controls.addEventListener('end',   () => setTimeout(() => userInteracting = false, 2000));
+
+startLoop({ scene, camera, controls, renderer }, [
+  { update: (dt) => {
+    if (!userInteracting && lattice.isAssembled) {
+      lattice.group.rotation.y += dt * 0.018;
+    }
+  }}
+]);
+
+/* ---- Cross-section slider ---- */
+crossSlider.addEventListener('input', () => {
+  const t = Number(crossSlider.value) / 100;
+  lattice.setCrossSection(t);
+  crossVal.textContent = t === 0 ? 'None' : `${Math.round(t * 100)}%`;
+});
+
+/* ---- Lattice size slider ---- */
+sizeSlider.addEventListener('input', () => {
+  const newSize = Number(sizeSlider.value);
+  sizeVal.textContent = `${newSize} \u00d7 ${newSize} \u00d7 ${newSize}`;
+});
+
+sizeSlider.addEventListener('change', () => {
+  const newSize = Number(sizeSlider.value);
+  if (newSize === lattice.currentSize) return;
+  enableControls(false);
+  crossSlider.value = 0;
+  lattice.setCrossSection(0);
+  crossVal.textContent = 'None';
+  assemblyMsg.classList.remove('hidden');
+  updateReadout(newSize);
+  lattice.resize(newSize, () => onAssembled());
+});
+
+/* ---- Rebuild button ---- */
+resetBtn.addEventListener('click', () => {
+  if (lattice.isAssembling) return;
+  enableControls(false);
+  crossSlider.value = 0;
+  lattice.setCrossSection(0);
+  crossVal.textContent = 'None';
+  assemblyMsg.classList.remove('hidden');
+  const currentSize = lattice.currentSize;
+  lattice = buildLattice(scene, renderer, { size: currentSize, onAssembled });
+  updateReadout(currentSize);
+});
+
+/* ---- Ion picking ---- */
+const raycaster = new THREE.Raycaster();
+const pointer   = new THREE.Vector2();
+let tooltipTimeout = null;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (!lattice.isAssembled) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  pointer.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const picked = lattice.pickIon(raycaster);
+  lattice.highlight(picked);
+
+  if (picked) {
+    tooltipSym.textContent  = picked.isNa ? 'Na\u207A' : 'Cl\u207B';
+    tooltipSym.className    = `ion-sym ${picked.isNa ? 'na-col' : 'cl-col'}`;
+    tooltipInfo.textContent = picked.isNa
+      ? 'Sodium cation \u00b7 +1 charge \u00b7 lost 1e\u207B'
+      : 'Chloride anion \u00b7 \u22121 charge \u00b7 gained 1e\u207B';
+    ionTooltip.style.left = `${e.clientX + 12}px`;
+    ionTooltip.style.top  = `${e.clientY - 10}px`;
+    ionTooltip.classList.add('visible');
+
+    document.getElementById('selectedType').textContent   = picked.isNa ? 'Na⁺' : 'Cl⁻';
+    document.getElementById('selectedPos').textContent    =
+      `${picked.position.x.toFixed(2)}, ${picked.position.y.toFixed(2)}, ${picked.position.z.toFixed(2)}`;
+    document.getElementById('selectedCharge').textContent = picked.isNa ? '+1' : '−1';
+
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => {
+      ionTooltip.classList.remove('visible');
+      lattice.highlight(null);
+    }, 2800);
+  } else {
+    ionTooltip.classList.remove('visible');
+    document.getElementById('selectedType').textContent   = '—';
+    document.getElementById('selectedPos').textContent    = '—';
+    document.getElementById('selectedCharge').textContent = '—';
+  }
+});
+
+initIcons();
+</script>
+</body>
+</html>

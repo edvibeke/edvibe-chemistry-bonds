@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Quantum Bond — Phase 5: Copper Metallic Bond</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/theme.css">
+<style>
+  .dock { left:50%; right:auto; transform:translateX(-50%); }
+  .drawer-wrap {
+    position:fixed; top:50%; left:0;
+    transform:translateY(-50%) translateX(0);
+    transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    z-index:15; display:flex; align-items:center;
+  }
+  .drawer-wrap.closed { transform:translateY(-50%) translateX(calc(-100% + 22px)); }
+  .readout {
+    width:220px; background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:0 14px 14px 0; padding:14px; display:flex; flex-direction:column;
+    gap:6px; max-height:80vh; overflow-y:auto; scrollbar-width:none;
+  }
+  .readout::-webkit-scrollbar { display:none; }
+  .drawer-tab {
+    width:22px; height:56px; background:var(--panel); border:1px solid var(--panel-border);
+    border-left:none; border-radius:0 8px 8px 0; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; flex-shrink:0; transition:background 0.2s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .drawer-tab:hover { background:var(--panel-border); }
+  .drawer-tab svg { width:12px; height:12px; color:var(--text-dim); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+  .drawer-wrap.closed .drawer-tab svg { transform:rotate(180deg); }
+  .controls-wrap {
+    position:fixed; bottom:88px; left:50%; transform:translateX(-50%);
+    z-index:10; display:flex; flex-direction:column; gap:10px; width:300px;
+  }
+  .ctrl-row { display:flex; flex-direction:column; gap:5px; }
+  .ctrl-header { display:flex; justify-content:space-between; align-items:center; }
+  .ctrl-label { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.07em; color:var(--text-dim); text-transform:uppercase; }
+  .ctrl-value { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--accent); }
+  .slider { -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:999px; background:var(--panel-border); outline:none; cursor:pointer; }
+  .slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid var(--bg); box-shadow:0 0 6px rgba(94,234,212,0.6); }
+  .slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid var(--bg); }
+  .slider:disabled { opacity:0.35; cursor:not-allowed; }
+  #tempSlider { background:linear-gradient(to right, #3b82f6, #f97316, #ef4444); }
+  .ion-tooltip { position:fixed; background:var(--panel); border:1px solid var(--panel-border); border-radius:10px; padding:8px 14px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text); pointer-events:none; z-index:20; opacity:0; transition:opacity 0.2s ease; white-space:nowrap; }
+  .ion-tooltip.visible { opacity:1; }
+  .ion-tooltip .ion-sym { font-size:15px; font-weight:700; margin-right:6px; color:#e8840a; }
+  .legend { position:fixed; top:80px; right:20px; background:var(--panel); border:1px solid var(--panel-border); border-radius:12px; padding:12px 16px; z-index:10; display:flex; flex-direction:column; gap:8px; }
+  .legend-item { display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.04em; }
+  .legend-dot { width:13px; height:13px; border-radius:50%; flex-shrink:0; }
+  .mode-badge { display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.06em; padding:3px 8px; border-radius:999px; border:1px solid var(--panel-border); color:var(--accent); margin-top:2px; }
+  .mode-badge .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); animation:pulse-dot 1.8s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)} }
+  .flow-indicator { position:fixed; top:80px; left:50%; transform:translateX(-50%); background:var(--panel); border:1px solid #e8840a55; border-radius:8px; padding:6px 14px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#e8840a; letter-spacing:0.06em; z-index:10; opacity:0; transition:opacity 0.3s ease; pointer-events:none; }
+  .flow-indicator.visible { opacity:1; }
+  .assembly-msg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:0.08em; color:var(--text-dim); pointer-events:none; z-index:5; transition:opacity 0.5s ease; }
+  .assembly-msg.hidden { opacity:0; }
+  .selected-section { margin-top:8px; padding-top:8px; border-top:1px solid var(--panel-border); }
+  .selected-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--text-dim); text-transform:uppercase; margin-bottom:6px; }
+  .dock-btn.active { color:var(--accent); border-color:var(--accent); background:rgba(94,234,212,0.08); }
+  @media (max-width:640px) { .readout{width:170px;padding:10px} .controls-wrap{width:240px} .legend{display:none} }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><i data-lucide="orbit" style="width:18px;height:18px;"></i></div>
+    <div class="brand-text">
+      <div class="title">Quantum Bond</div>
+      <div class="subtitle">EDVIBE &middot; ATOMIC STRUCTURE LAB</div>
+    </div>
+  </div>
+  <div class="phase-tag">PHASE 5 / 8 &middot; METALLIC BOND</div>
+</div>
+
+<div class="assembly-msg" id="assemblyMsg">Assembling copper FCC lattice&hellip;</div>
+<div class="flow-indicator" id="flowIndicator">&#9889; CURRENT FLOWING &mdash; electrons drifting &rarr;</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#e8840a;"></div><span style="color:#e8840a;">Cu&#x207A; &nbsp;Copper cation</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#5eead4;"></div><span style="color:#5eead4;">e&#x207B; &nbsp;Delocalised electrons</span></div>
+</div>
+
+<div class="ion-tooltip" id="ionTooltip">
+  <span class="ion-sym">Cu&#x207A;</span>
+  <span id="tooltipInfo">Copper cation &middot; +1 charge &middot; 1 valence e&#x207B; lost</span>
+</div>
+
+<div class="drawer-wrap" id="drawerWrap">
+  <div class="readout">
+    <div class="symbol-row"><span class="symbol" style="--element-color:#e8840a; font-size:22px;">Cu</span></div>
+    <div class="config-name">Copper &middot; face-centred cubic</div>
+    <div class="mode-badge" id="modeBadge"><span class="dot"></span><span id="modeLabel">PARTICLE MODE</span></div>
+    <div class="readout-row" style="margin-top:10px;"><span class="readout-label">STRUCTURE</span><span class="readout-value" style="color:var(--accent)">FCC</span></div>
+    <div class="readout-row"><span class="readout-label">LATTICE SIZE</span><span class="readout-value" id="latticeSize">3 &times; 3 &times; 3</span></div>
+    <div class="readout-row"><span class="readout-label">Cu&#x207A; IONS</span><span class="readout-value" style="color:#e8840a" id="ionCount">&mdash;</span></div>
+    <div class="readout-row"><span class="readout-label">FREE e&#x207B;</span><span class="readout-value" style="color:#5eead4">1800</span></div>
+    <div class="readout-row"><span class="readout-label">BOND TYPE</span><span class="readout-value charged">Metallic</span></div>
+    <div class="readout-row"><span class="readout-label">TEMPERATURE</span><span class="readout-value" id="tempReadout">Low</span></div>
+    <div class="readout-row"><span class="readout-label">CURRENT</span><span class="readout-value" id="currentReadout">Off</span></div>
+    <div class="readout-row"><span class="readout-label">Cu-Cu DISTANCE</span><span class="readout-value">256 pm</span></div>
+    <div class="selected-section">
+      <div class="selected-label">SELECTED ION</div>
+      <div class="readout-row"><span class="readout-label">Type</span><span class="readout-value" id="selectedType">&mdash;</span></div>
+      <div class="readout-row"><span class="readout-label">Position (x,y,z)</span><span class="readout-value" id="selectedPos" style="font-size:11px;">&mdash;</span></div>
+      <div class="readout-row"><span class="readout-label">Charge</span><span class="readout-value" id="selectedCharge">&mdash;</span></div>
+    </div>
+  </div>
+  <div class="drawer-tab" id="drawerTab">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,2 4,6 8,10"/></svg>
+  </div>
+</div>
+
+<div class="controls-wrap">
+  <div class="ctrl-row">
+    <div class="ctrl-header"><span class="ctrl-label">Temperature</span><span class="ctrl-value" id="tempVal">Low</span></div>
+    <input type="range" class="slider" id="tempSlider" min="0" max="100" value="20" step="1" disabled>
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-header"><span class="ctrl-label">Cross-section</span><span class="ctrl-value" id="crossVal">None</span></div>
+    <input type="range" class="slider" id="crossSlider" min="0" max="100" value="0" step="1" disabled>
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-header"><span class="ctrl-label">Lattice size</span><span class="ctrl-value" id="sizeVal">3 &times; 3 &times; 3</span></div>
+    <input type="range" class="slider" id="sizeSlider" min="2" max="4" value="3" step="1" disabled>
+  </div>
+</div>
+
+<div class="dock">
+  <button class="dock-btn" id="modeBtn"><i data-lucide="zap"></i><span class="label">Shader</span></button>
+  <button class="dock-btn" id="flowBtn"><i data-lucide="arrow-right"></i><span class="label">Current</span></button>
+  <button class="dock-btn" id="resetBtn"><i data-lucide="rotate-ccw"></i><span class="label">Rebuild</span></button>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { initScene, startLoop } from '../core/scene.js';
+import { buildMetallic }        from '../core/metallic.js';
+import { initIcons }            from '../core/ui.js';
+
+const container = document.getElementById('scene');
+const { scene, camera, renderer, controls } = initScene(container, {
+  cameraPosition: [0, 6, 20], minDistance: 5, maxDistance: 45, fogDensity: 0.009,
+});
+
+const drawerWrap = document.getElementById('drawerWrap');
+document.getElementById('drawerTab').addEventListener('click', () => {
+  drawerWrap.classList.toggle('closed');
+});
+
+const assemblyMsg   = document.getElementById('assemblyMsg');
+const flowIndicator = document.getElementById('flowIndicator');
+const tempSlider    = document.getElementById('tempSlider');
+const crossSlider   = document.getElementById('crossSlider');
+const sizeSlider    = document.getElementById('sizeSlider');
+const tempVal       = document.getElementById('tempVal');
+const crossVal      = document.getElementById('crossVal');
+const sizeVal       = document.getElementById('sizeVal');
+const ionTooltip    = document.getElementById('ionTooltip');
+const modeBtn       = document.getElementById('modeBtn');
+const flowBtn       = document.getElementById('flowBtn');
+const resetBtn      = document.getElementById('resetBtn');
+const modeLabel     = document.getElementById('modeLabel');
+
+function tempLabel(v) {
+  if (v < 25) return 'Low';
+  if (v < 55) return 'Medium';
+  if (v < 80) return 'High';
+  return 'Critical';
+}
+
+function updateReadout(size, ionCount) {
+  document.getElementById('latticeSize').textContent = `${size} \u00d7 ${size} \u00d7 ${size}`;
+  document.getElementById('ionCount').textContent    = ionCount;
+}
+
+function enableControls(on) {
+  [tempSlider, crossSlider, sizeSlider].forEach(s => s.disabled = !on);
+}
+
+function onAssembled() {
+  assemblyMsg.classList.add('hidden');
+  enableControls(true);
+  updateReadout(metallic.currentSize, metallic.cuPositions.length);
+}
+
+let metallic = buildMetallic(scene, renderer, { size: 3, onAssembled });
+
+let userInteracting = false;
+controls.addEventListener('start', () => userInteracting = true);
+controls.addEventListener('end',   () => setTimeout(() => userInteracting = false, 2000));
+
+startLoop({ scene, camera, controls, renderer }, [
+  { update: (dt) => {
+    if (!userInteracting && metallic.isAssembled) metallic.group.rotation.y += dt * 0.016;
+    metallic.update(dt);
+  }}
+]);
+
+tempSlider.addEventListener('input', () => {
+  const v   = Number(tempSlider.value);
+  const lbl = tempLabel(v);
+  metallic.setTemperature(v / 100);
+  tempVal.textContent = lbl;
+  document.getElementById('tempReadout').textContent = lbl;
+});
+
+crossSlider.addEventListener('input', () => {
+  const t = Number(crossSlider.value) / 100;
+  metallic.setCrossSection(t);
+  crossVal.textContent = t === 0 ? 'None' : `${Math.round(t*100)}%`;
+});
+
+sizeSlider.addEventListener('input', () => {
+  sizeVal.textContent = `${sizeSlider.value} \u00d7 ${sizeSlider.value} \u00d7 ${sizeSlider.value}`;
+});
+sizeSlider.addEventListener('change', () => {
+  const newSize = Number(sizeSlider.value);
+  if (newSize === metallic.currentSize) return;
+  enableControls(false);
+  crossSlider.value = 0; metallic.setCrossSection(0); crossVal.textContent = 'None';
+  assemblyMsg.classList.remove('hidden');
+  metallic.resize(newSize, () => onAssembled());
+});
+
+modeBtn.addEventListener('click', () => {
+  const isShader = metallic.toggleMode();
+  modeLabel.textContent = isShader ? 'SHADER MODE' : 'PARTICLE MODE';
+  modeBtn.querySelector('.label').textContent = isShader ? 'Particles' : 'Shader';
+  modeBtn.classList.toggle('active', isShader);
+  const icon = modeBtn.querySelector('i');
+  icon.setAttribute('data-lucide', isShader ? 'sparkles' : 'zap');
+  initIcons();
+});
+
+flowBtn.addEventListener('click', () => {
+  const flowing = metallic.toggleCurrentFlow();
+  document.getElementById('currentReadout').textContent = flowing ? 'Flowing \u2192' : 'Off';
+  flowIndicator.classList.toggle('visible', flowing);
+  flowBtn.classList.toggle('active', flowing);
+});
+
+resetBtn.addEventListener('click', () => {
+  if (metallic.isAssembling) return;
+  enableControls(false);
+  crossSlider.value = 0; tempSlider.value = 20;
+  metallic.setCrossSection(0); crossVal.textContent = 'None'; tempVal.textContent = 'Low';
+  assemblyMsg.classList.remove('hidden');
+  const currentSize = metallic.currentSize;
+  metallic.dispose();
+  metallic = buildMetallic(scene, renderer, { size: currentSize, onAssembled });
+});
+
+const raycaster = new THREE.Raycaster();
+const pointer   = new THREE.Vector2();
+let tooltipTimeout = null;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (!metallic.isAssembled) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x =  ((e.clientX-rect.left)/rect.width)*2-1;
+  pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const picked = metallic.pickIon(raycaster);
+  metallic.highlight(picked);
+
+  if (picked) {
+    ionTooltip.style.left = `${e.clientX+12}px`;
+    ionTooltip.style.top  = `${e.clientY-10}px`;
+    ionTooltip.classList.add('visible');
+    document.getElementById('selectedType').textContent   = 'Cu\u207a';
+    document.getElementById('selectedPos').textContent    =
+      `${picked.position.x.toFixed(2)}, ${picked.position.y.toFixed(2)}, ${picked.position.z.toFixed(2)}`;
+    document.getElementById('selectedCharge').textContent = '+1';
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => { ionTooltip.classList.remove('visible'); metallic.highlight(null); }, 2800);
+  } else {
+    ionTooltip.classList.remove('visible');
+    document.getElementById('selectedType').textContent   = '\u2014';
+    document.getElementById('selectedPos').textContent    = '\u2014';
+    document.getElementById('selectedCharge').textContent = '\u2014';
+  }
+});
+
+initIcons();
+</script>
+</body>
+</html>
