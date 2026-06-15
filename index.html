@@ -2,15 +2,48 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Quantum Bond — EdVibe Atomic Structure Lab</title>
-<link rel="manifest" href="/quantum-bond/manifest.json">
-<meta name="theme-color" content="#070b14">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Quantum Bond">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#070b14" />
+<meta name="color-scheme" content="dark" />
+
+<!-- Primary Meta Tags -->
+<title>EdVibe Quantum Bond — Interactive 3D Chemistry Lab</title>
+<meta name="title" content="EdVibe Quantum Bond — Interactive 3D Chemistry Lab" />
+<meta name="description" content="Learn atomic bonding through real-time 3D visualization. Ionic, covalent, metallic bonds, crystal lattices, sandbox mode. Works offline. Free for schools worldwide." />
+<meta name="keywords" content="chemistry, atomic bonding, NaCl crystal, covalent bond, ionic bond, metallic bond, periodic table, 3D chemistry, educational, PWA, Three.js" />
+<meta name="author" content="EdVibe" />
+<meta name="robots" content="index, follow" />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://edvibeke.github.io/quantum-bond/" />
+<meta property="og:title" content="EdVibe Quantum Bond — Interactive 3D Chemistry Lab" />
+<meta property="og:description" content="Replace dry textbook diagrams with tangible 3D atomic bonding. Drag electrons. Slice through crystals. Works offline." />
+<meta property="og:image" content="https://edvibeke.github.io/quantum-bond/og-image.png" />
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content="https://edvibeke.github.io/quantum-bond/" />
+<meta property="twitter:title" content="EdVibe Quantum Bond — Interactive 3D Chemistry Lab" />
+<meta property="twitter:description" content="Learn atomic bonding through real-time 3D visualization. Ionic, covalent, metallic, sandbox. PWA offline." />
+<meta property="twitter:image" content="https://edvibeke.github.io/quantum-bond/og-image.png" />
+
+<!-- Apple / iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="EdVibe Chemistry" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+<!-- Manifest + PWA -->
+<link rel="manifest" href="/quantum-bond/manifest.json" />
+
+<!-- Canonical URL -->
+<link rel="canonical" href="https://edvibeke.github.io/quantum-bond/" />
+
+<!-- Preconnect for fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
 <style>
   :root {
     --bg:           #070b14;
@@ -75,7 +108,13 @@
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  .brand-title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand-title { 
+    font-size: 28px; font-weight: 700; letter-spacing: -0.02em; 
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
   .brand-sub {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px; color: var(--text-dim);
@@ -151,15 +190,18 @@
   .phase-card:hover::before { opacity: 1; }
 
   .phase-card.coming-soon {
-    opacity: 0.45; pointer-events: none;
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
   }
   .phase-card.coming-soon::after {
     content: 'COMING SOON';
     position: absolute; top: 12px; right: 12px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 8px; letter-spacing: 0.1em;
-    color: var(--text-dim);
-    background: var(--panel-border);
+    color: var(--accent);
+    background: rgba(94,234,212,0.15);
+    border: 1px solid rgba(94,234,212,0.3);
     border-radius: 999px; padding: 3px 7px;
   }
 
@@ -224,7 +266,6 @@
   <div class="header">
     <div class="brand-row">
       <div class="brand-mark">
-        <!-- Inline SVG orbit icon — no CDN dependency on home page -->
         <svg viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3"/>
           <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(0 12 12)"/>
@@ -233,8 +274,8 @@
         </svg>
       </div>
       <div>
-        <div class="brand-title">Quantum Bond</div>
-        <div class="brand-sub">EdVibe &middot; Atomic Structure Lab</div>
+        <div class="brand-title">EdVibe Quantum Bond</div>
+        <div class="brand-sub">Atomic Structure Lab &middot; Interactive 3D Chemistry</div>
       </div>
     </div>
 
@@ -246,54 +287,54 @@
 
     <div class="offline-badge">
       <span class="dot"></span>
-      PWA &middot; Offline capable &middot; No install required
+      PWA &middot; Offline capable &middot; No install required &middot; Free for schools
     </div>
   </div>
 
-  <!-- Install prompt (shown only if browser supports it) -->
-  <button id="installBtn">Add to Home Screen</button>
+  <!-- Install prompt -->
+  <button id="installBtn">📱 Add to Home Screen</button>
 
   <!-- Phase cards -->
-  <div class="section-label">Learning Modules</div>
+  <div class="section-label">Learning Modules — 8 Phases</div>
   <div class="phase-grid">
 
     <a class="phase-card" href="phase1/index.html" style="--card-color:#ab5cf2">
-      <div class="phase-num">PHASE 1</div>
+      <div class="phase-num">PHASE 1 ✓</div>
       <div class="phase-name">Ion Formation</div>
-      <div class="phase-desc">Single sodium atom — toggle Bohr shells vs electron cloud, click to ionize Na to Na⁺.</div>
+      <div class="phase-desc">Single sodium atom — toggle Bohr shells vs electron cloud, click to ionize Na → Na⁺.</div>
       <div class="phase-tags"><span class="tag">Na</span><span class="tag">Ionisation</span><span class="tag">Electron cloud</span></div>
     </a>
 
     <a class="phase-card" href="phase2/index.html" style="--card-color:#1ff01f">
-      <div class="phase-num">PHASE 2</div>
+      <div class="phase-num">PHASE 2 ✓</div>
       <div class="phase-name">Ionic Bond</div>
       <div class="phase-desc">NaCl — watch the valence electron physically transfer from Na to Cl. Timeline scrubber included.</div>
       <div class="phase-tags"><span class="tag">NaCl</span><span class="tag">Electron transfer</span><span class="tag">Scrubber</span></div>
     </a>
 
     <a class="phase-card" href="phase3/index.html" style="--card-color:#ff3333">
-      <div class="phase-num">PHASE 3</div>
+      <div class="phase-num">PHASE 3 ✓</div>
       <div class="phase-name">Covalent Bond</div>
       <div class="phase-desc">H₂O at 104.5° — two sequential O–H bonds form with shared orbital overlap and dipole arrow.</div>
       <div class="phase-tags"><span class="tag">H₂O</span><span class="tag">VSEPR</span><span class="tag">Dipole</span></div>
     </a>
 
     <a class="phase-card" href="phase4/index.html" style="--card-color:#fbbf24">
-      <div class="phase-num">PHASE 4</div>
+      <div class="phase-num">PHASE 4 ✓</div>
       <div class="phase-name">Crystal Lattice</div>
-      <div class="phase-desc">NaCl 3D grid assembles ion by ion from the centre. Cross-section slider reveals the interior.</div>
+      <div class="phase-desc">NaCl 3D grid assembles ion by ion from the centre. Cross-section slider reveals interior alternating pattern.</div>
       <div class="phase-tags"><span class="tag">InstancedMesh</span><span class="tag">FCC</span><span class="tag">Cross-section</span></div>
     </a>
 
     <a class="phase-card" href="phase5/index.html" style="--card-color:#e8840a">
-      <div class="phase-num">PHASE 5</div>
+      <div class="phase-num">PHASE 5 ✓</div>
       <div class="phase-name">Metallic Bond</div>
       <div class="phase-desc">Copper FCC lattice with a sea of delocalised electrons. Temperature and current flow controls.</div>
       <div class="phase-tags"><span class="tag">Cu</span><span class="tag">Sea of electrons</span><span class="tag">Current</span></div>
     </a>
 
     <a class="phase-card" href="phase6/index.html" style="--card-color:#5eead4">
-      <div class="phase-num">PHASE 6</div>
+      <div class="phase-num">PHASE 6 ✓</div>
       <div class="phase-name">Sandbox</div>
       <div class="phase-desc">Drag any element from the periodic table. Engine auto-classifies bonds as ionic, polar, or covalent.</div>
       <div class="phase-tags"><span class="tag">Free explore</span><span class="tag">20 elements</span><span class="tag">Drag</span></div>
@@ -302,14 +343,14 @@
     <div class="phase-card coming-soon" style="--card-color:#7d8cab">
       <div class="phase-num">PHASE 7</div>
       <div class="phase-name">PWA Offline</div>
-      <div class="phase-desc">Service worker caches all phases and CDN assets. Works with zero internet after first load.</div>
+      <div class="phase-desc">Service worker caches all phases and assets. Works with zero internet after first load.</div>
       <div class="phase-tags"><span class="tag">Service Worker</span><span class="tag">Offline</span></div>
     </div>
 
     <div class="phase-card coming-soon" style="--card-color:#7d8cab">
       <div class="phase-num">PHASE 8</div>
       <div class="phase-name">Guided Quiz</div>
-      <div class="phase-desc">Build molecules step by step. Wrong geometry triggers a visual explosion. Score tracked per session.</div>
+      <div class="phase-desc">Build molecules step by step. Wrong geometry triggers visual explosion. Score tracked per session.</div>
       <div class="phase-tags"><span class="tag">Quiz</span><span class="tag">Gamified</span><span class="tag">Score</span></div>
     </div>
 
@@ -317,8 +358,8 @@
 
   <!-- Footer -->
   <div class="footer">
-    <span>Quantum Bond &middot; EdVibe &copy; 2025</span>
-    <span id="swStatus">Checking offline status&hellip;</span>
+    <span>EdVibe Quantum Bond &copy; 2025</span>
+    <span id="swStatus">Checking offline status…</span>
   </div>
 
 </div>
@@ -347,26 +388,31 @@
       .then(reg => {
         const el = document.getElementById('swStatus');
         if (reg.active) {
-          el.textContent = 'Offline ready — all phases cached';
+          el.textContent = '✓ Offline ready — all phases cached';
           el.style.color = '#5eead4';
-        } else {
-          el.textContent = 'Caching phases for offline use\u2026';
-          reg.installing?.addEventListener('statechange', e => {
+        } else if (reg.installing) {
+          el.textContent = '⏳ Caching phases for offline use…';
+          reg.installing.addEventListener('statechange', e => {
             if (e.target.state === 'activated') {
-              el.textContent = 'Offline ready — all phases cached';
+              el.textContent = '✓ Offline ready — all phases cached';
               el.style.color = '#5eead4';
             }
           });
+        } else {
+          el.textContent = 'Offline ready';
+          el.style.color = '#5eead4';
         }
       })
       .catch(() => {
-        document.getElementById('swStatus').textContent = 'Offline caching unavailable (needs HTTPS)';
+        document.getElementById('swStatus').textContent = '⚠️ Offline caching needs HTTPS';
       });
+  } else {
+    document.getElementById('swStatus').textContent = 'Service Worker not supported';
   }
 
   /* ---- PWA install prompt ---- */
   let deferredPrompt = null;
-  const installBtn   = document.getElementById('installBtn');
+  const installBtn = document.getElementById('installBtn');
 
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
